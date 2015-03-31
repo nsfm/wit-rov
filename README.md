@@ -1,12 +1,12 @@
-Control Software for WIT ROV for MATE 2015
+###Control Software for WIT ROV for MATE 2015
 
 Description to come soon
 
 
-Opcode Dictionary:
+##Opcode Dictionary:
 
 Commands are sent in up to six byte (char) groups, delimited by the newline char ('\n').
-The first byte represents a function, the remaining are arguments. If you send more than 6 bytes, you will be disconnected.
+The first byte represents a function, the remaining are arguments. Pad single digit integers with leading 0s if the specific command expects multiple digits. If you send more than 6 bytes, you will be disconnected.
 ```
 Digital Write:
 dXXY\n
