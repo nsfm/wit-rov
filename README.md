@@ -10,10 +10,10 @@ Commands are sent in up to six byte (char) groups, delimited by the newline char
 The first byte represents a function, the remaining are arguments. If you send more than 6 bytes, you will be disconnected.
 
 *Digital Write:*
-dXXY\n
+```dXXY\n
 XX = pin, ie 03 or 42
 Y = value, 1 for HIGH, else LOW
-return: nothing useful
+return: nothing useful```
 
 *Analog Write:*
 aXXYYY\n
