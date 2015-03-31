@@ -1,4 +1,3 @@
-# wit-rov
 Control Software for WIT ROV for MATE 2015
 
 Description to come soon
@@ -8,8 +7,8 @@ Opcode Dictionary:
 
 Commands are sent in up to six byte (char) groups, delimited by the newline char ('\n').
 The first byte represents a function, the remaining are arguments. If you send more than 6 bytes, you will be disconnected.
-
-```Digital Write:
+```
+Digital Write:
 dXXY\n
 XX = pin, ie 03 or 42
 Y = value, 1 for HIGH, else LOW
