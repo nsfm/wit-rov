@@ -42,9 +42,7 @@ void loop() {
       // if we go so many ticks without hearing anything, time out the client
       timer--;
       if (timer == 0) {
-        server.write("timeout\r\n");
-        client.flush();
-        client.stop(); 
+        disconnect(server, client, "timeout");
         break;
       }
       
@@ -67,9 +65,7 @@ void loop() {
           i++;
         } else {
           // if you overflow the command buffer, you are disconnected
-          server.write("please no\r\n");
-          client.flush();
-          client.stop(); 
+          disconnect(server, client, "please no");
           break;
         }
       }
@@ -79,94 +75,68 @@ void loop() {
     switch(op[0]) {
       // digital write
       case 'd':
-        // get the pin they want to set
-        int pin = ((op[1]-'0')*10)+(op[2]-'0');
-        
         if (op[3] == '1') {
-          digitalWrite(pin,HIGH)
+          digitalWrite(char2int(op[1],op[2]),HIGH)
         } else {
-          digitalWrite(pin,LOW)
+          digitalWrite(char2int(op[1],op[2]),LOW)
         }
-        
         server.write("!");
         break;
         
       // analog write
-      case 'a':
-        // get the pin they want to set
-        int pin = ((op[1]-'0')*10)+(op[2]-'0');
-        int val = ((op[3]-'0')*100)+((op[4]-'0')*10)+(op[5]-'0');
-        
-        analogWrite(pin,val)
-
+      case 'a':        
+        analogWrite(char2int(op[1],op[2]),char2int(op[3],op[4],op[5]));
         server.write("!");
         break;
         
       // pin mode
       case 'p':
-        int pin = ((op[1]-'0')*10)+(op[2]-'0');
-        
         switch(op[3]) {
           case '0':
-            pinMode(pin, INPUT);
+            pinMode(char2int(op[1],op[2]), INPUT);
             break;
           case '1':
-            pinMode(pin, OUTPUT);
+            pinMode(char2int(op[1],op[2]), OUTPUT);
             break;
           case '2':
-            pinMode(pin, INPUT_PULLUP);
+            pinMode(char2int(op[1],op[2]), INPUT_PULLUP);
             break
           default:
             server.write("?");
         }
-        
         server.write("!");
         break;
       
       // analog read
       case 'h':
-        int pin = ((op[1]-'0')*10)+(op[2]-'0');
-        server.print(analogRead(pin));
+        server.print(analogRead(char2int(op[1],op[2])));
         break;
         
       // digital read
       case 'r':
-        int pin = ((op[1]-'0')*10)+(op[2]-'0');
-        server.print(digitalRead(pin));
+        server.print(digitalRead(char2int(op[1],op[2])));
         break;
         
       // attach thruster
       case 's':
-        int pin = ((op[1]-'0')*10)+(op[2]-'0');
-        int id = op[3]-'0';
-        
-        thruster[id].attach(pin)
-        
+        thruster[char2int(op[3])].attach(char2int(op[1],op[2]))
         server.write("!");
         break;
         
       // set thruster
       case 't':
-        int id = op[1]-'0';
-        int val = ((op[2]-'0')*100)+((op[3]-'0')*10)+(op[4]-'0');
-        
-        thruster[id].writeMicroseconds(1100+val);
-        
+        thruster[char2int(op[1])].writeMicroseconds(1100+char2int(op[2],op[3],op[4]));
         server.write("!");
         break;
       
       // version
       case 'v':
-        // return build number
         server.print(BUILD);
         break;
       
       // end session
       case 'q':
-        // disconnect this client gracefully
-        server.write("goodbye!");
-        client.flush();
-        client.stop();
+        disconnect(server, client, "goodbye!");
         break;
         
       case '\r':
@@ -185,5 +155,24 @@ void loop() {
   
   // this part of the loop is active only when no clients are connected
   // what should we do while we're idling and waiting for commands?
+}
+
+// gracefully disconnect
+void disconnect(Server server, Client client, char* message) {
+  server.write(message);
+  server.write('\n');
+  client.flush();
+  client.stop();
+}
+
+// convert a few characters to ints
+int char2int(char val) {
+  return (val-'0');
+}
+int char2int(char val, char val2) {
+  return ((val-'0')*10)+(val2-'0');
+}
+int char2int(char val, char val2, char val3) {
+  return ((val-'0')*100)+((val2-'0')*10)+(val3-'0');
 }
 
