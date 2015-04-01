@@ -50,3 +50,10 @@ YYY = value, 000-800
 return: nothing useful
 Note: a speed of 000 is full reverse; 800 is full forward. 400 is stop.
 ```
+###Laptop Setup
+The UI currently only runs on a Windows Computer but is very simply to run.  First you need to connect the arduino to the computer via Ethernet and have the arduino's IP set to 192.168.0.2 and the computers IP set to 192.168.0.1. (Currently being set in arduino.cpp so this code just needs to be uploaded to the arduino) Then it is as simple as running the wit_rov.exe file.  Let it run for a few seconds if you don't have the proper configuration and it cannot connect to the arduino it will take a few seconds and then diplay a connection error.  
+
+```
+Current Functionality:
+allows for you to enter any 6 bit opcode and send it to the arduino.
+```

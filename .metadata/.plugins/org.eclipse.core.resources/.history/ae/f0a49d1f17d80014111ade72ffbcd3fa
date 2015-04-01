@@ -1,0 +1,46 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+
+public class Client {
+
+	private Socket socket;
+	private BufferedReader in;
+	private PrintWriter out;
+	
+	public Client(String ip) throws UnknownHostException, IOException
+	{
+		socket = new Socket(ip, 65533);
+		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		out = new PrintWriter(socket.getOutputStream());
+	}
+	
+	public boolean sendCode(String code) throws IOException
+	{
+		print("Sending: " + code);
+		out.println(code);
+		String message = "";
+		while((message = in.readLine()) != null)
+		{
+			print("~ " + message);
+		}
+		
+		if(message.contains("!"))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+		return true;
+	}
+	public void print(String message)
+	{
+		System.out.println(message);
+	}
+}

@@ -1,0 +1,128 @@
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.net.UnknownHostException;
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+
+
+public class MainFrame extends JFrame implements ActionListener{
+	
+	private Client robot;
+	private JButton execute; 
+	private JPanel buttons;
+	private JLabel cLabel;
+	private JTextField command;
+	
+	
+	/*
+	 * Constructor
+	 * Creates the Client object and establishes
+	 * a connection with the arduino on the given
+	 * IP Address. Also sets the title of the UI.
+	 */
+	public MainFrame(String ip, String title)
+	{
+		try {
+			
+			//Handles all communication to the Arduino on 
+			//The given IP Address
+			robot = new Client(ip);
+			this.setTitle(title);
+			init();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	/*
+	 * Initializes UI Components
+	 */
+	public void init()
+	{
+		//Initializes first set of buttons
+		buttons = new JPanel();
+		buttons.setSize(new Dimension(500,500));
+		
+		//Initializes the Execute button 
+		//and sets the Click listener to this class
+		execute = new JButton("Execute Command");
+		//method is this.actionPerformed
+		execute.addActionListener(this);
+		
+		//Initializes a label for the text field
+		cLabel = new JLabel("Command");
+		
+		//Initializes a text field for command input
+		command = new JTextField(5);
+		
+		//adds the execute command button, label, and textfield
+		//to a panel to be displayed and formatted
+		buttons.add(cLabel);
+		buttons.add(command);
+		buttons.add(execute);
+	
+		//adds the panels to the screen to display components
+		this.add(buttons);
+		
+		//Packs the frame meaning it shrinks the window
+		//to the smallest size needed for the components it holds
+		this.pack();
+	}
+	
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
+	 * 
+	 * Handles all Button clicks for the main view
+	 * 
+	 * 		e is the click event and the source will be the button
+	 * 			that was clicked
+	 */
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		
+		if(e.getSource() == execute)
+		{
+			if(command.getText().length() > 6)
+			{
+				break;
+			}
+			else
+			{
+				//sends whatever text is in the command text field to the robot
+				robot.sendCode(command.getText());
+			}
+		}
+		
+	}
+	
+	
+	public static void main(String[] args)
+	{
+		//Creates a new MainFrame object and passes the 
+		//IP Address of the Arduino this is currently hardcoded in
+		//the arduino.cpp file.  Also passes the title for the UI.
+		MainFrame m = new MainFrame("192.168.0.2", "WIT-ROV");
+		
+		//Displays the UI and sets the close operation
+		m.setVisible(true);
+		//Sets the close operation to kill the connection to the arduino
+		//when the UI closes
+		m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+	}
+
+}
