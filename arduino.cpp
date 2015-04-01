@@ -59,11 +59,14 @@ void loop() {
     while (true) {
       
       // if we go so many ticks without hearing anything, time out the client
-      timer--;
-      if (timer == 0) {
-        disconnect(server, client, "timeout");
-        break;
-      }
+      //timer--;
+      //if (timer == 0) {
+      //  server.write("timeout!");
+      //  server.write('\n');
+      //  client.flush();
+      //  client.stop();
+      //  break;
+      //}
       
       // read the bytes incoming from the client:
       if (client.available() > 0) {
@@ -84,7 +87,10 @@ void loop() {
           i++;
         } else {
           // if you overflow the command buffer, you are disconnected
-          disconnect(server, client, "please no");
+          server.write("overflow!");
+          server.write('\n');
+          client.flush();
+          client.stop();
           break;
         }
       }
@@ -95,9 +101,9 @@ void loop() {
       // digital write
       case 'd':
         if (op[3] == '1') {
-          digitalWrite(char2int(op[1],op[2]),HIGH)
+          digitalWrite(char2int(op[1],op[2]),HIGH);
         } else {
-          digitalWrite(char2int(op[1],op[2]),LOW)
+          digitalWrite(char2int(op[1],op[2]),LOW);
         }
         server.write("!");
         break;
@@ -119,7 +125,7 @@ void loop() {
             break;
           case '2':
             pinMode(char2int(op[1],op[2]), INPUT_PULLUP);
-            break
+            break;
           default:
             server.write("?");
         }
@@ -138,7 +144,7 @@ void loop() {
         
       // attach thruster
       case 's':
-        thruster[char2int(op[3])].attach(char2int(op[1],op[2]))
+        thruster[char2int(op[3])].attach(char2int(op[1],op[2]));
         server.write("!");
         break;
         
@@ -155,7 +161,10 @@ void loop() {
       
       // end session
       case 'q':
-        disconnect(server, client, "goodbye!");
+        server.write("goodbye!");
+        server.write('\n');
+        client.flush();
+        client.stop();
         break;
         
       case '\r':
@@ -173,14 +182,6 @@ void loop() {
   
   // this part of the loop is active only when no clients are connected
   // what should we do while we're idling and waiting for commands?
-}
-
-// gracefully disconnect
-void disconnect(Server server, Client client, char* message) {
-  server.write(message);
-  server.write('\n');
-  client.flush();
-  client.stop();
 }
 
 // convert a few characters to ints
