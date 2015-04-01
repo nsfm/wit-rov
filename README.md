@@ -3,7 +3,7 @@
 Description to come soon
 
 
-###Opcode Dictionary:
+###Command Dictionary:
 Commands are sent in up to six byte (char) groups, delimited by the newline char ('\n').
 The first byte represents a function, the remaining are arguments. Pad single digit integers with leading 0s if the specific command expects multiple digits. If you send more than 6 bytes without a newline, you will be disconnected.
 
