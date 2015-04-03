@@ -18,6 +18,7 @@ import javax.swing.JTextField;
 import com.witrov.config.DatabaseHandle;
 import com.witrov.joystick.Controller;
 import com.witrov.joystick.Joystick;
+import com.witrov.main.ui.ConfigPanel;
 import com.witrov.main.ui.JoyStickPanel;
 import com.witrov.main.ui.LogPanel;
 
@@ -35,6 +36,8 @@ public class MainFrame extends JFrame implements ActionListener{
 	private JTabbedPane tabs;					//Tab pane to handle tabbed content
 	private JoyStickPanel joystickPanel;		//panel for choosing and managing joysticks
 	private Joystick joystick;					//Object to handle joystick input
+	private ConfigPanel configPanel;
+	private DatabaseHandle db;
 	private int joystickThreshold = 25;
 	private int lastJoystick[];
 	private boolean lastButton[];
@@ -53,6 +56,7 @@ public class MainFrame extends JFrame implements ActionListener{
 				robot = new Client(ip, port);
 			}
 			this.setTitle(title);
+			this.db = new DatabaseHandle();
 			init();
 	}
 	
@@ -96,6 +100,8 @@ public class MainFrame extends JFrame implements ActionListener{
 		//Initialize JoyStickPanel
 		joystickPanel = new JoyStickPanel(500,500, this);
 		
+		//initalize config panel
+		configPanel = new ConfigPanel(500,500,this);
 		
 		//adds the panels to the screen to display components
 		main.add(buttons, BorderLayout.WEST);
@@ -104,7 +110,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		
 		tabs.addTab("Main",null, main, "Main display");
 		tabs.addTab("Joystick", null, joystickPanel, "Joystick Configurations");		
-		
+		tabs.addTab("Config", null, configPanel, "Main Configurations");
 		this.add(tabs, BorderLayout.WEST);
 		this.add(log, BorderLayout.EAST);
 		
@@ -316,6 +322,18 @@ public class MainFrame extends JFrame implements ActionListener{
 		return this.joystick;
 	}
 	
+	public void resetClient()
+	{
+		
+		try {
+			robot = new Client(db.findIp(), 23);
+		} catch (UnknownHostException e) {
+			System.exit(0);
+		} catch (IOException e) {
+			System.exit(0);
+		}
+	}
+	
 	public static void main(String[] args)
 	{
 		String ip = "null";
@@ -327,19 +345,25 @@ public class MainFrame extends JFrame implements ActionListener{
 		{
 			
 			DatabaseHandle db = new DatabaseHandle();
-			
-			//Get IP Address if we couldn't find one in the Database
-			String result = JOptionPane.showInputDialog("Please enter the IP of the Arduino or -1 from Debug.");
-			ip = result;
-			if(result == null) //User pressed Cancel
+			ip = db.findIp();
+			if(ip == null)
 			{
-				System.exit(0);
+				//Get IP Address if we couldn't find one in the Database
+				String result = JOptionPane.showInputDialog("Please enter the IP of the Arduino or -1 from Debug.");
+				ip = result;
+				if(result == null) //User pressed Cancel
+				{
+					System.exit(0);
+				}
+				else if(ip.equals("-1")) //User wants to enter debug mode
+				{
+					debug = true;
+				}
+				else
+				{
+					db.insertConfig("ip", ip);
+				}
 			}
-			else if(ip.equals("-1")) //User wants to enter debug mode
-			{
-				debug = true;
-			}
-			
 			//Creates a new MainFrame object and passes the 
 			//IP Address of the Arduino this is currently hardcoded in
 			//the arduino.cpp file.  Also passes the title for the UI.
