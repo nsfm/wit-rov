@@ -15,11 +15,11 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 
+import com.witrov.config.ConfigPanel;
 import com.witrov.config.DatabaseHandle;
 import com.witrov.joystick.Controller;
 import com.witrov.joystick.Joystick;
-import com.witrov.main.ui.ConfigPanel;
-import com.witrov.main.ui.JoyStickPanel;
+import com.witrov.main.ui.ControllerPanel;
 import com.witrov.main.ui.LogPanel;
 
 
@@ -34,10 +34,12 @@ public class MainFrame extends JFrame implements ActionListener{
 	private JTextField command;					//input fields to get input from the user
 	private LogPanel log;						//Panel to print out log information
 	private JTabbedPane tabs;					//Tab pane to handle tabbed content
-	private JoyStickPanel joystickPanel;		//panel for choosing and managing joysticks
+	private ControllerPanel controllerPanel;		//panel for choosing and managing joysticks
 	private Joystick joystick;					//Object to handle joystick input
 	private ConfigPanel configPanel;
 	private DatabaseHandle db;
+	private boolean loggedJoystickError = false;	//This is just so we dont flood the log 
+													//when we don't have a connected joystick
 	private int joystickThreshold = 25;
 	private int lastJoystick[];
 	private boolean lastButton[];
@@ -97,8 +99,8 @@ public class MainFrame extends JFrame implements ActionListener{
 		//initializes log panel for use in main frame
 		log = new LogPanel(750,1000, LogPanel.APPEND_BOTTOM);
 		
-		//Initialize JoyStickPanel
-		joystickPanel = new JoyStickPanel(500,500, this);
+		//Initialize controllerPanel
+		controllerPanel = new ControllerPanel(500,500, this);
 		
 		//initalize config panel
 		configPanel = new ConfigPanel(500,500,this);
@@ -109,7 +111,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		tabs = new JTabbedPane();
 		
 		tabs.addTab("Main",null, main, "Main display");
-		tabs.addTab("Joystick", null, joystickPanel, "Joystick Configurations");		
+		tabs.addTab("Controllers", null, controllerPanel, "Controller Configurations");		
 		tabs.addTab("Config", null, configPanel, "Main Configurations");
 		this.add(tabs, BorderLayout.WEST);
 		this.add(log, BorderLayout.EAST);
@@ -277,19 +279,35 @@ public class MainFrame extends JFrame implements ActionListener{
 	
 	public boolean checkJoyStick()
 	{
-		if(this.joystick == null)
+		
+		if(this.joystick == null && !this.loggedJoystickError)
 		{
-			this.log.error("Joystick is null. Please choose one from the Joystick tab.");
+			if(Controller.getDevices(false).size() > 0)
+			{
+				this.log.error("There are no Joysticks attached to the computer");
+				this.loggedJoystickError = true;
+			}
+			else
+			{
+				this.log.error("Joystick is null. Please choose one from the Joystick tab.");
+				this.loggedJoystickError = true;
+			}
 			return false;
 		}
-		else if(!this.joystick.isRunning())
+		else if(!this.loggedJoystickError && !this.joystick.isRunning())
 		{
 			this.log.error("Joystick encountered an error.  Please choose Joystick again in Joystick Tab");
+			this.loggedJoystickError = true;
 			return false;
+		}
+		else if(this.joystick != null && this.joystick.isRunning())
+		{
+			this.loggedJoystickError = false;
+			return true;
 		}
 		else
 		{
-			return true;
+			return false;
 		}
 	}
 	

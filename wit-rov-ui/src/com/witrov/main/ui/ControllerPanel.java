@@ -27,12 +27,12 @@ import com.witrov.joystick.Controller;
 import com.witrov.joystick.Joystick;
 import com.witrov.main.MainFrame;
 
-public class JoyStickPanel extends JPanel implements ActionListener{
+public class ControllerPanel extends JPanel implements ActionListener{
 	
 	private JComboBox<HIDDeviceInfo> devices;				//a drop down to select a device
 	private MainFrame main;
 	
-	public JoyStickPanel(int height, int width, MainFrame main)
+	public ControllerPanel(int height, int width, MainFrame main)
 	{
 		this.main = main;
 		this.init(height, width);
@@ -40,18 +40,25 @@ public class JoyStickPanel extends JPanel implements ActionListener{
 	}
 	private void init(int height, int width)
 	{
-		ArrayList<HIDDeviceInfo> devs = Controller.getDevices(false);
+		ArrayList<HIDDeviceInfo> devs = Controller.getDevices(true);
 		HIDDeviceInfo[] comboList = new HIDDeviceInfo[devs.size()];
 		devs.toArray(comboList);
 		
-		devices = new JComboBox<HIDDeviceInfo>(comboList);
-		HIDInfoRenderer r = new HIDInfoRenderer();
-		devices.setRenderer(r);
-		devices.addActionListener(this);
+		if(comboList.length > 0)
+		{
+			devices = new JComboBox<HIDDeviceInfo>(comboList);
+			HIDInfoRenderer r = new HIDInfoRenderer();
+			devices.setRenderer(r);
+			devices.addActionListener(this);
+			createJoystick();
+			
+			this.add(devices);
+		}
+		else
+		{
+			this.add(new JLabel("There are no devices connected"));
+		}
 
-		createJoystick();
-		
-		this.add(devices);
 	}
 
 	@Override

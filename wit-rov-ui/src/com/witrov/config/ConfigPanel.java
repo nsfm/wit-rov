@@ -1,4 +1,4 @@
-package com.witrov.main.ui;
+package com.witrov.config;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -27,7 +27,6 @@ import javax.swing.SwingConstants;
 import javax.swing.border.BevelBorder;
 
 import com.codeminders.hidapi.HIDDeviceInfo;
-import com.witrov.config.DatabaseHandle;
 import com.witrov.joystick.Controller;
 import com.witrov.joystick.Joystick;
 import com.witrov.main.MainFrame;
