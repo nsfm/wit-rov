@@ -1,10 +1,9 @@
 .metadata/
-ui/.settings/
-ui/.project
-ui/.classpath
+wit-rov-ui/.settings/
+wit-rov-ui/.project
+wit-rov-ui/.classpath
 executable/
 *.log
-ui/bin
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
