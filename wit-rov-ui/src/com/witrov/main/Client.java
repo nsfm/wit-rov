@@ -6,6 +6,8 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
+import javax.swing.JOptionPane;
+
 
 public class Client {
 
@@ -13,17 +15,26 @@ public class Client {
 	private BufferedReader in;		//the reader to read the responses from the robot
 	private PrintWriter out;		//the writer to send data tot the robot
 	private boolean debug;			//boolean to set whether to print debug data or not
+	private MainFrame main;
 	
 	/*
 	 * Creates connection to ip on given port and opens a line of 
 	 * communication using the Buffered reader to read responses
 	 * and the Printwriter to send commands
 	 */
-	public Client(String ip, int port) throws UnknownHostException, IOException
+	public Client(String ip, int port, MainFrame main)
 	{
-		socket = new Socket(ip, port);
-		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		out = new PrintWriter(socket.getOutputStream());
+		try {
+			this.main = main;
+			main.getLog().info("Attempting Connection to "+ip+" on port "+port+"...");
+			socket = new Socket(ip, port);
+			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			out = new PrintWriter(socket.getOutputStream());
+			main.getLog().info("Connected to "+ip);
+		} catch (IOException e) {
+			main.getLog().error("There was an error connecting to "+ip+" on port "+port+"");
+			e.printStackTrace();
+		}
 	}
 	
 	/*
@@ -43,8 +54,7 @@ public class Client {
 			return false;
 		}
 		
-		//debug to print code being sent
-		print("Sending: " + code);
+		
 		
 		//queues the code to be sent
 		out.println(code);
@@ -60,17 +70,16 @@ public class Client {
 			e.printStackTrace();
 		}
 		
-		//debug message
-		print("~ " + message);
-		
 		//parses the message to see if we received a 
 		//success response
 		if(message.contains("!"))
 		{
+			main.getLog().info("Command Successfully Executed.");
 			return true;
 		}
 		else
 		{
+			main.getLog().error("Could Not execute Command");
 			return false;
 		}
 	}

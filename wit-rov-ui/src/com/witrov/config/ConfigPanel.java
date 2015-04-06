@@ -28,16 +28,16 @@ import javax.swing.border.BevelBorder;
 
 import com.codeminders.hidapi.HIDDeviceInfo;
 import com.witrov.joystick.Controller;
-import com.witrov.joystick.Joystick;
+import com.witrov.joystick.LogitechJoystick;
 import com.witrov.main.MainFrame;
 
 public class ConfigPanel extends JPanel implements ActionListener{
 	
 	private MainFrame main;
-	private JLabel ipLabel;
-	private JTextField ipField;
+	private JLabel ipLabel, portLabel;
+	private JTextField ipField, portField;
 	private JButton save;
-	private JPanel ipPanel;
+	private JPanel ipPanel, portPanel;
 	
 	public ConfigPanel(int height, int width, MainFrame main)
 	{
@@ -47,60 +47,84 @@ public class ConfigPanel extends JPanel implements ActionListener{
 	}
 	private void init(int height, int width)
 	{
+		DatabaseHandle db = new DatabaseHandle();
 		
 		ipPanel = new JPanel();
-		
 		ipLabel = new JLabel("Arduino IP:");
-		
 		ipField = new JTextField(10);
-		
-		DatabaseHandle db = new DatabaseHandle();
 		ipField.setText(db.findIp());
-		db.closeConnection();
-		
-		save = new JButton("Save Changes");
-		save.addActionListener(this);
-		
 		ipPanel.add(ipLabel);
 		ipPanel.add(ipField);
 		
+		portPanel = new JPanel();
+		portLabel = new JLabel("Arduino Port:");
+		portField = new JTextField(5);
+		portField.setText(db.findPort());
+		portPanel.add(portLabel);
+		portPanel.add(portField);
+		
+		
+		save = new JButton("Save Changes");
+		save.addActionListener(this);
 		this.add(ipPanel);
+		this.add(portPanel);
 		this.add(save);
+		db.closeConnection();
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == save)
 		{
-			checkIp();
+			checkIpPort();
 		}
 	}
 	
-	public void checkIp()
+	public void checkIpPort()
 	{
 		String ip = ipField.getText();
+		String port = portField.getText();
 		DatabaseHandle db = new DatabaseHandle();
 		try {
 			
-			if(!ip.equals(db.findIp()))
+			if(!ip.equals(db.findIp()) && port.equals(db.findPort()))
 			{
-				Socket s = new Socket(ip, 23);
+				Socket s = new Socket(ip, Integer.parseInt(port));
 				main.getLog().info("Connection successful");
 				db.updateConfig("ip", ip);
 				db.closeConnection();
 				main.resetClient();
 				main.getLog().info("Arduino IP Updated: "+ip);
 			}
-			else
+			else if(!port.equals(db.findPort()) && ip.equals(db.findIp()))
 			{
-				main.getLog().info("Arduino IP not changed");
+				Socket s = new Socket(ip, Integer.parseInt(port));
+				main.getLog().info("Connection successful");
+				db.updateConfig("port", port);
+				db.closeConnection();
+				main.resetClient();
+				main.getLog().info("Arduino Port Updated: "+port);
 			}
+			else if(!port.equals(db.findPort()) && !ip.equals(db.findIp()))
+			{
+				Socket s = new Socket(ip, Integer.parseInt(port));
+				main.getLog().info("Connection successful");
+				db.updateConfig("port", port);
+				db.updateConfig("ip", ip);
+				db.closeConnection();
+				main.resetClient();
+				main.getLog().info("Arduino Port Updated: "+port);
+				main.getLog().info("Arduino IP Updated: "+ip);
+			}
+			
 		} catch (UnknownHostException e1) {
 			ipField.setText(db.findIp()); 
+			portField.setText(db.findPort()); 
 			main.getLog().error("Could not connect to ip: "+ip);
 		} catch (IOException e1) {
 			ipField.setText(db.findIp());
-			main.getLog().error("Could not connect to ip: "+ip);
+			portField.setText(db.findPort());
+			main.getLog().error("Could not connect to IP: "+ip+" on Port: "+port);
 		}
 	}
 }

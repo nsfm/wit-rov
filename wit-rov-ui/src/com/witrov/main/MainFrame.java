@@ -15,12 +15,12 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 
+import com.codeminders.hidapi.HIDDeviceNotFoundException;
 import com.witrov.config.ConfigPanel;
 import com.witrov.config.DatabaseHandle;
 import com.witrov.joystick.Controller;
-import com.witrov.joystick.Joystick;
-import com.witrov.main.ui.ControllerPanel;
-import com.witrov.main.ui.LogPanel;
+import com.witrov.joystick.ControllerPanel;
+import com.witrov.joystick.LogitechJoystick;
 
 
 public class MainFrame extends JFrame implements ActionListener{
@@ -35,7 +35,7 @@ public class MainFrame extends JFrame implements ActionListener{
 	private LogPanel log;						//Panel to print out log information
 	private JTabbedPane tabs;					//Tab pane to handle tabbed content
 	private ControllerPanel controllerPanel;		//panel for choosing and managing joysticks
-	private Joystick joystick;					//Object to handle joystick input
+	private Controller joystick;					//Object to handle joystick input
 	private ConfigPanel configPanel;
 	private DatabaseHandle db;
 	private boolean loggedJoystickError = false;	//This is just so we dont flood the log 
@@ -49,14 +49,9 @@ public class MainFrame extends JFrame implements ActionListener{
 	 * a connection with the arduino on the given
 	 * IP Address and port. Also sets the title of the UI.
 	 */
-	public MainFrame(String ip, String title, int port, boolean debug) throws UnknownHostException, IOException
+	public MainFrame(String title)
 	{
-			//Handles all communication to the Arduino on 
-			//The given IP Address
-			if(!debug)
-			{
-				robot = new Client(ip, port);
-			}
+
 			this.setTitle(title);
 			this.db = new DatabaseHandle();
 			init();
@@ -101,6 +96,9 @@ public class MainFrame extends JFrame implements ActionListener{
 		
 		//Initialize controllerPanel
 		controllerPanel = new ControllerPanel(500,500, this);
+		Thread updateController = new Thread(controllerPanel);
+		
+		updateController.start();
 		
 		//initalize config panel
 		configPanel = new ConfigPanel(500,500,this);
@@ -141,14 +139,7 @@ public class MainFrame extends JFrame implements ActionListener{
 			//sends whatever text is in the command text field to the robot
 			try
 			{
-				if(!robot.sendCode(command.getText()))
-				{
-					log.error("There was an error executing the opcode");
-				}
-				else
-				{
-					this.log.info(command.getText()+" Successfully executed");
-				}
+				robot.sendCode(command.getText());
 			}catch(Exception er)
 			{
 				log.error("The following error occured while executing the opcode:");
@@ -162,15 +153,55 @@ public class MainFrame extends JFrame implements ActionListener{
 
 	}
 	
+	public void initConnection()
+	{
+		String ip;
+		ip = db.findIp();
+		String port = null;
+		port = db.findPort();
+		if(port == null)
+		{
+			//attempt connection on default port of 23
+			port = "23";
+			db.insertConfig("port", port);
+		}
+		boolean debug = false;
+		if(ip == null)
+		{
+			//Get IP Address if we couldn't find one in the Database
+			String result = JOptionPane.showInputDialog("Please enter the IP of the Arduino or -1 for Debug.");
+			ip = result;
+			if(result == null) //User pressed Cancel
+			{
+				System.exit(0);
+			}
+			else if(ip.equals("-1")) //User wants to enter debug mode
+			{
+				debug = true;
+			}
+			else
+			{
+				db.insertConfig("ip", ip);
+			}
+		}
+		
+		//Handles all communication to the Arduino on 
+		//The given IP Address
+		if(!debug)
+		{
+			robot = new Client(ip, Integer.parseInt(port), this);
+		}
+	}
+	
 	public void showJoyStickValues()
 	{
 		if(!this.checkJoyStick())
 		{
 			return;
 		}
-		int x = this.joystick.getX();
-		int y = this.joystick.getY();
-		int s = this.joystick.getStrafe();
+		int x = this.joystick.getJoystick1X();
+		int y = this.joystick.getJoystick1Y();
+		int s = this.joystick.getMisc()[0];
 		
 		if(Math.abs(x - this.lastJoystick[0]) > this.joystickThreshold)
 		{
@@ -229,49 +260,7 @@ public class MainFrame extends JFrame implements ActionListener{
 			}
 		}
 	}
-	
-	public void showButtonValues()
-	{
-		if(this.joystick == null)
-		{
-			return;
-		}
-		boolean trigger = this.joystick.getTrigger();
-		boolean button2 = this.joystick.getButton2();
-		if(trigger && !this.lastButton[0])
-		{
-			if(button2)
-			{
-				robot.sendCode("d060");
-				this.lastButton[1] = button2;
-			}
-			else
-			{
-				robot.sendCode("d061");
-				this.lastButton[1] = false;
-			}
-			this.lastButton[0] = trigger;
-		}
-		else if(!trigger && this.lastButton[0])
-		{
-			this.lastButton[0] = false;
-		}
-	}
-	
-	public void showKnobValues()
-	{
-		if(this.joystick == null)
-		{
-			return;
-		}
-		int knob = this.joystick.getKnob();
-		if(knob != this.lastJoystick[4])
-		{
-			this.log.debug("KNOB CHANGE: "+knob);
-			this.lastJoystick[4] = knob;
-		}
-	}
-	
+
 	public LogPanel getLog()
 	{
 		return this.log;
@@ -282,7 +271,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		
 		if(this.joystick == null && !this.loggedJoystickError)
 		{
-			if(Controller.getDevices(false).size() > 0)
+			if(Controller.getDevices(false).size() <= 0)
 			{
 				this.log.error("There are no Joysticks attached to the computer");
 				this.loggedJoystickError = true;
@@ -311,22 +300,38 @@ public class MainFrame extends JFrame implements ActionListener{
 		}
 	}
 	
-	public void setJoyStick(Joystick joystick)
+	public void setJoyStick(LogitechJoystick joystick)
 	{
 		if(this.joystick != null)
 		{
 			this.joystick.kill();
+			this.joystick = null;
+		}
+		if(joystick == null)
+		{
+			this.joystick.kill();
+			this.joystick = null;
+			this.log.info("Joystick is not connected");
+			return;
 		}
 		this.joystick = joystick;
-		this.log.info("Joystick initialized");
-		joystick.start();
+		this.joystick.start();
+		
+		if(this.joystick.isRunning())
+		{
+			this.log.info("Joystick initialized");
+		}
+		else
+		{
+			this.log.error("Device not connected");
+		}
+
 		
 		lastJoystick = new int[5];
 		//set initial starting points for joystick
-		lastJoystick[0] = this.joystick.getX();
-		lastJoystick[1] = this.joystick.getY();
-		lastJoystick[3] = this.joystick.getStrafe();
-		lastJoystick[4] = this.joystick.getKnob();
+		lastJoystick[0] = this.joystick.getJoystick1X();
+		lastJoystick[1] = this.joystick.getJoystick1Y();
+		lastJoystick[3] = this.joystick.getMisc()[0];
 		
 		this.lastButton = new boolean[12];
 		//set initial button points to false
@@ -335,80 +340,48 @@ public class MainFrame extends JFrame implements ActionListener{
 			this.lastButton[i] = false;
 		}
 	}
-	public Joystick getJoystick()
+	public Controller getJoystick()
 	{
 		return this.joystick;
 	}
 	
 	public void resetClient()
 	{
-		
-		try {
-			robot = new Client(db.findIp(), 23);
-		} catch (UnknownHostException e) {
-			System.exit(0);
-		} catch (IOException e) {
-			System.exit(0);
-		}
+		robot = new Client(db.findIp(), Integer.parseInt(db.findPort()), this);
 	}
 	
 	public static void main(String[] args)
 	{
-		String ip = "null";
 		String title = "WIT-ROV"; 		//title for UI
-		int port = 23; 					//port of arduino
-		boolean debug = false;
 		
-		try
+		//Creates a new MainFrame object and passes the 
+		//IP Address of the Arduino this is currently hardcoded in
+		//the arduino.cpp file.  Also passes the title for the UI.
+		MainFrame m = new MainFrame(title);
+		
+		m.setState(JFrame.MAXIMIZED_BOTH);
+		
+		//Displays the UI
+		m.setVisible(true);
+		
+		//Sets the close operation to kill the connection to the arduino
+		//when the UI closes
+		m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		//Create connection to arduino
+		m.initConnection();
+		
+		while(true)
 		{
-			
-			DatabaseHandle db = new DatabaseHandle();
-			ip = db.findIp();
-			if(ip == null)
-			{
-				//Get IP Address if we couldn't find one in the Database
-				String result = JOptionPane.showInputDialog("Please enter the IP of the Arduino or -1 from Debug.");
-				ip = result;
-				if(result == null) //User pressed Cancel
-				{
-					System.exit(0);
-				}
-				else if(ip.equals("-1")) //User wants to enter debug mode
-				{
-					debug = true;
-				}
-				else
-				{
-					db.insertConfig("ip", ip);
-				}
-			}
-			//Creates a new MainFrame object and passes the 
-			//IP Address of the Arduino this is currently hardcoded in
-			//the arduino.cpp file.  Also passes the title for the UI.
-			MainFrame m = new MainFrame(ip, title, port, debug);
-			
-			m.setState(JFrame.MAXIMIZED_BOTH);
-			
-			//Displays the UI
-			m.setVisible(true);
-			
-			//Sets the close operation to kill the connection to the arduino
-			//when the UI closes
-			m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-			
-			while(true)
-			{
-				m.showButtonValues();
-				m.showKnobValues();
-				m.showJoyStickValues();
+			m.showJoyStickValues();
+			try {
 				Thread.sleep(100);
-				
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 			
-		} catch (Exception e){
-			e.printStackTrace();
-			JOptionPane.showMessageDialog(null, "There was an error estabilishing a connection to "+ip, title, JOptionPane.ERROR_MESSAGE);	
-		}		
+		}	
 	}
 
 }

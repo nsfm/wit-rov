@@ -3,16 +3,20 @@ package com.witrov.joystick;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
+import com.codeminders.hidapi.HIDDevice;
 import com.codeminders.hidapi.HIDDeviceInfo;
 import com.codeminders.hidapi.HIDManager;
 
-public class Controller extends Thread{
+public abstract class Controller extends Thread implements ControllerInterface{
 	
 	public static final int BUFSIZE = 2048;
 	public static final long READ_UPDATE_DELAY_MS = 50L;
 	
 	public static String[] supportedProducts = new String[]{ //this is a list of the supported devices
-		"Logitech Extreme 3D"
+		"Logitech Extreme 3D",
+		"XBOX 360"
 	};
 	
     static
@@ -109,13 +113,59 @@ public class Controller extends Thread{
     }
     private static boolean isSupported(String productName)
     {
-    	for(int i = 0; i < supportedProducts.length; i++)
+    	if(productName != null)
     	{
-    		if(supportedProducts[i].equals(productName))
-    		{
-    			return true;
-    		}
+	    	for(int i = 0; i < supportedProducts.length; i++)
+	    	{
+	    		if(productName.contains(supportedProducts[i]))
+	    		{
+	    			return true;
+	    		}
+	    	}
     	}
     	return false;
+    }
+    
+    public void processButtonSet(int buttonSet, int startIndex, int endIndex, int startValue, boolean[] buttons)
+    {
+    	if(buttonSet > 0)
+    	{
+		    while(buttonSet > 0)
+		    {
+		    	if(buttonSet - startValue >= 0)
+		    	{
+		    		buttons[startIndex] = true;
+		    		buttonSet -= startValue;
+		    	}
+		    	else
+		    	{
+		    		buttons[startIndex] = false;
+		    	}
+		    	startValue /= 2;
+		    	startIndex--;
+		    }
+    	}
+    	else
+    	{
+    		for(int i = startIndex; i >= endIndex; i--)
+    		{
+    			buttons[i] = false;
+    		}
+    	}
+        
+    }    
+    public void run()
+    {
+
+	        /*
+	    for(int i=0; i<n; i++)
+	    {
+	        int v = buf[i];
+	        if (v<0) v = v+256;
+	        System.err.print(v + " ");
+	    }
+	    System.err.println("");
+	    */
+    	throw new NotImplementedException();
     }
 }

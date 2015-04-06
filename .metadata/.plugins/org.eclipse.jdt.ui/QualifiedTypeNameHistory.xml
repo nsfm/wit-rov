@@ -35,4 +35,8 @@
 <fullyQualifiedTypeName name="java.net.Socket"/>
 <fullyQualifiedTypeName name="com.witrov.config.DatabaseHandle"/>
 <fullyQualifiedTypeName name="com.witrov.main.ui.ConfigPanel"/>
+<fullyQualifiedTypeName name="com.codeminders.hidapi.HIDDeviceNotFoundException"/>
+<fullyQualifiedTypeName name="com.witrov.joystick.XboxController"/>
+<fullyQualifiedTypeName name="java.lang.Thread"/>
+<fullyQualifiedTypeName name="sun.reflect.generics.reflectiveObjects.NotImplementedException"/>
 </qualifiedTypeNameHistroy>

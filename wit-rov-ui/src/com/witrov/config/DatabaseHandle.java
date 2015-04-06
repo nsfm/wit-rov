@@ -85,4 +85,22 @@ public class DatabaseHandle {
 		}
 		return ip;
 	}
+	public String findPort()
+	{
+		String query = "SELECT value FROM config WHERE key='port'";
+		String sPort = null;
+		try {
+			Statement stmt = c.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next())
+			{
+				sPort = rs.getString("value");
+			}
+			stmt.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return sPort;
+	}
 }
