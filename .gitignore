@@ -10,7 +10,6 @@ ui/bin
 .mtj.tmp/
 
 # Package Files #
-*.jar
 *.war
 *.ear
 
