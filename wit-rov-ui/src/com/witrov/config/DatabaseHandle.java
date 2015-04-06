@@ -1,14 +1,10 @@
 package com.witrov.config;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.*;
 
 public class DatabaseHandle {
 	
-	private String version = "0.0";		//this is used if there is an update in the database it will drop
-										//drop the schema and create a new one
 	private String dbName = "test.db";
 	private String dbPath = System.getProperty("user.home")+"\\WIT_ROV";
 	private Connection c;

@@ -1,10 +1,7 @@
 package com.witrov.joystick;
 
 import java.io.IOException;
-import java.util.ArrayList;
-
 import com.codeminders.hidapi.HIDDevice;
-import com.codeminders.hidapi.HIDDeviceInfo;
 import com.codeminders.hidapi.HIDManager;
 
 public class LogitechJoystick extends Controller{
@@ -66,7 +63,16 @@ public class LogitechJoystick extends Controller{
 	        try
 	        {
 	            byte[] buf = new byte[BUFSIZE];
-	            dev.enableBlocking();
+	            if(dev == null)
+	            {
+	            	System.out.println("Dev was null");
+	            	isRunning = false;
+	            }
+	            else
+	            {
+	            	dev.disableBlocking();
+	            	dev.enableBlocking();
+	            }
 	            
 	            
 	            while(isRunning)
@@ -145,17 +151,15 @@ public class LogitechJoystick extends Controller{
 	        	System.out.println("HERE");
 	        	e.printStackTrace();
 	        	isRunning = false;
-	        }finally
-	        {
-	        	if(dev != null)
-	        	{
-	        		dev.close();
-	        	}
-	            hid_mgr.release();    
-	            System.gc();
-	            isRunning = false;
-	            System.out.println("HERE2");
 	        }
+	        
+			if(dev != null)
+	    	{
+	    		dev.close();
+	    	}
+	        hid_mgr.release();    
+	        System.gc();
+	        
 		} catch (IOException e1) {
 			isRunning = false;
 			e1.printStackTrace();

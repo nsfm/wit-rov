@@ -1,27 +1,11 @@
 package com.witrov.joystick;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-
-import javafx.scene.layout.Border;
-
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextPane;
-import javax.swing.SwingConstants;
-import javax.swing.border.BevelBorder;
-
 import com.codeminders.hidapi.HIDDeviceInfo;
 import com.witrov.main.MainFrame;
 
@@ -45,6 +29,7 @@ public class ControllerPanel extends JPanel implements ActionListener, Runnable{
 		ArrayList<HIDDeviceInfo> devs = Controller.getDevices(false);
 		HIDDeviceInfo[] comboList = new HIDDeviceInfo[devs.size()];
 		devs.toArray(comboList);
+		
 		
 		if(comboList.length > 0)
 		{
@@ -94,7 +79,14 @@ public class ControllerPanel extends JPanel implements ActionListener, Runnable{
 		HIDDeviceInfo dev = devices.getItemAt(devices.getSelectedIndex());
 		if(this.devices.getModel().getSize() > 0)
 		{
-			main.setJoyStick(new LogitechJoystick(dev.getVendor_id(), dev.getProduct_id()));
+			if(dev.getProduct_string().toLowerCase().contains("xbox"))
+			{
+				main.setJoyStick(new XboxController(dev.getVendor_id(), dev.getProduct_id()));
+			}
+			else
+			{
+				main.setJoyStick(new LogitechJoystick(dev.getVendor_id(), dev.getProduct_id()));
+			}
 		}
 		else
 		{

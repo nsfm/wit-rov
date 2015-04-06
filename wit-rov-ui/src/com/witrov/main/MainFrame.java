@@ -1,12 +1,8 @@
 package com.witrov.main;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
-import java.net.UnknownHostException;
-
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -15,7 +11,6 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 
-import com.codeminders.hidapi.HIDDeviceNotFoundException;
 import com.witrov.config.ConfigPanel;
 import com.witrov.config.DatabaseHandle;
 import com.witrov.joystick.Controller;
@@ -300,7 +295,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		}
 	}
 	
-	public void setJoyStick(LogitechJoystick joystick)
+	public void setJoyStick(Controller joystick)
 	{
 		if(this.joystick != null)
 		{
@@ -309,11 +304,10 @@ public class MainFrame extends JFrame implements ActionListener{
 		}
 		if(joystick == null)
 		{
-			this.joystick.kill();
-			this.joystick = null;
 			this.log.info("Joystick is not connected");
 			return;
 		}
+		
 		this.joystick = joystick;
 		this.joystick.start();
 		
@@ -333,9 +327,9 @@ public class MainFrame extends JFrame implements ActionListener{
 		lastJoystick[1] = this.joystick.getJoystick1Y();
 		lastJoystick[3] = this.joystick.getMisc()[0];
 		
-		this.lastButton = new boolean[12];
+		this.lastButton = new boolean[this.joystick.getButtons().length];
 		//set initial button points to false
-		for(int i = 0; i < 12; i++)
+		for(int i = 0; i < this.lastButton.length; i++)
 		{
 			this.lastButton[i] = false;
 		}
@@ -369,7 +363,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		//Create connection to arduino
-		m.initConnection();
+		//m.initConnection();
 		
 		while(true)
 		{
