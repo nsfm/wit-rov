@@ -1,5 +1,5 @@
 /*
-WIT MATE ROV - Embedded code for microcontrollers aboard underwater ROVs
+WIT MATE ROV - Embedded code for microcontrollers the WIT ROV
 Copyright (C) 2015 Nathaniel Dube
 
 This program is free software; you can redistribute it and/or modify
