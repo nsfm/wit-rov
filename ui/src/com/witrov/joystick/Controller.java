@@ -5,19 +5,31 @@ import java.util.ArrayList;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import com.codeminders.hidapi.HIDDevice;
 import com.codeminders.hidapi.HIDDeviceInfo;
 import com.codeminders.hidapi.HIDManager;
 
 public abstract class Controller extends Thread implements ControllerInterface{
 	
 	public static final int BUFSIZE = 2048;
-	public static final long READ_UPDATE_DELAY_MS = 50L;
+	public static final long READ_UPDATE_DELAY_MS = 10L;
+	
+	private static Controller currentDev = null;
+	
+	//List of supported devices
+	//To create a new supported device add the product name here and create a class
+	//For that device that extends controller and use the run function to parse the data coming
+	//in from the device to get button presses and joystick movements.  Refer to LogitechJoystick and XboxController
+	//To get a print of all data form the device use the commented out for loop in this.run
+	//Also need to add a case in ControllerPanel class when the device is selected from the dropdown
 	
 	public static String[] supportedProducts = new String[]{ //this is a list of the supported devices
-		"Logitech Extreme 3D",
+		//"Logitech Extreme 3D",
 		"XBOX 360"
 	};
 	
+	
+	//Loads in proper native library
     static
     {
     	if(System.getProperty("os.name").toLowerCase().contains("windows"))
@@ -60,13 +72,15 @@ public abstract class Controller extends Thread implements ControllerInterface{
         {
             HIDManager manager = HIDManager.getInstance();
             HIDDeviceInfo[] allDevs = manager.listDevices();
-            
-            for(int i=0;i<allDevs.length;i++)
+            if(allDevs != null)
             {
-            	if(isSupported(allDevs[i].getProduct_string()) || allDevices)
-            	{
-            		list.add(allDevs[i]);
-            	}
+	            for(int i=0;i<allDevs.length;i++)
+	            {
+	            	if(isSupported(allDevs[i].getProduct_string()) || allDevices)
+	            	{
+	            		list.add(allDevs[i]);
+	            	}
+	            }
             }
             
             System.gc();
@@ -125,33 +139,42 @@ public abstract class Controller extends Thread implements ControllerInterface{
     	return false;
     }
     
+    /*
+     * buttonSet - value from 0-255 for data of pressed buttons
+     * startIndex - number of largest button in set
+     * endIndex - number of Smallest button in set
+     * buttons - array of button states true is pressed false is not pressed
+     */
     public void processButtonSet(int buttonSet, int startIndex, int endIndex, int startValue, boolean[] buttons)
     {
     	if(buttonSet > 0)
     	{
 		    while(buttonSet > 0)
 		    {
-		    	if(buttonSet - startValue >= 0)
+		    	if(buttonSet - startValue >= 0) //check if this button is pressed
 		    	{
-		    		buttons[startIndex] = true;
-		    		buttonSet -= startValue;
+		    		buttons[startIndex] = true; //mark the button as pressed
+		    		buttonSet -= startValue; //remove the button value from the buttonSet
 		    	}
 		    	else
 		    	{
-		    		buttons[startIndex] = false;
+		    		buttons[startIndex] = false; //button wasn't pressed mark it as not pressed
 		    	}
-		    	startValue /= 2;
-		    	startIndex--;
+		    	startValue /= 2; //decrease to next button value
+		    	startIndex--; //decrease to next button
+		    }
+		    for(int i = startIndex; i >= endIndex; i--)  //set buttons that weren't pressed to not pressed
+		    {
+		    	buttons[i] = false;
 		    }
     	}
     	else
     	{
-    		for(int i = startIndex; i >= endIndex; i--)
+    		for(int i = startIndex; i >= endIndex; i--) // no buttons were pressed update all buttons to not pressed
     		{
     			buttons[i] = false;
     		}
     	}
-        
     }    
     public void run()
     {
@@ -166,5 +189,18 @@ public abstract class Controller extends Thread implements ControllerInterface{
 	    System.err.println("");
 	    */
     	throw new NotImplementedException();
+    }
+    
+    public static void setCurrentDevice(Controller c)
+    {
+    	if(currentDev != null)
+    	{
+    		currentDev.kill();
+    	}
+    	currentDev = c;
+    }
+    public static Controller getCurrentDevice()
+    {
+    	return currentDev;
     }
 }

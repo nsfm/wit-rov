@@ -55,12 +55,10 @@ public class Client {
 		}
 		
 		
-		
 		//queues the code to be sent
 		out.println(code);
 		//sends the code to the arduino
 		out.flush();
-		
 		//reads in the response from the arduino 
 		String message = "";
 		try {
@@ -74,7 +72,7 @@ public class Client {
 		//success response
 		if(message.contains("!"))
 		{
-			main.getLog().info("Command Successfully Executed.");
+			main.getLog().info("Command Successfully Executed ("+code+").");
 			return true;
 		}
 		else

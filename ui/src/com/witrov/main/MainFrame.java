@@ -1,8 +1,13 @@
 package com.witrov.main;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -10,12 +15,14 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.border.BevelBorder;
 
 import com.witrov.config.ConfigPanel;
 import com.witrov.config.DatabaseHandle;
 import com.witrov.joystick.Controller;
 import com.witrov.joystick.ControllerPanel;
-import com.witrov.joystick.LogitechJoystick;
+import com.witrov.joystick.XboxController;
+import com.witrov.helpers.Vector;
 
 
 public class MainFrame extends JFrame implements ActionListener{
@@ -24,8 +31,10 @@ public class MainFrame extends JFrame implements ActionListener{
 	private JButton execute, 					//buttons to handle neccessary events
 				listDevices; 		
 	private JPanel main,						//panels to hold and format the view 
-				buttons;
-	private JLabel cLabel;						//labels to show what is what
+				buttons,
+				stats;
+	private JLabel cLabel,
+					depthLabel;						//labels to show what is what
 	private JTextField command;					//input fields to get input from the user
 	private LogPanel log;						//Panel to print out log information
 	private JTabbedPane tabs;					//Tab pane to handle tabbed content
@@ -35,9 +44,14 @@ public class MainFrame extends JFrame implements ActionListener{
 	private DatabaseHandle db;
 	private boolean loggedJoystickError = false;	//This is just so we dont flood the log 
 													//when we don't have a connected joystick
-	private int joystickThreshold = 25;
+	private int joystickThreshold = 20;
 	private int lastJoystick[];
 	private boolean lastButton[];
+	private int lastMisc[];
+	
+	private int depth = 0;							//Value to set for the depth of the robot
+	
+	
 	/*
 	 * Constructor
 	 * Creates the Client object and establishes
@@ -59,9 +73,12 @@ public class MainFrame extends JFrame implements ActionListener{
 	{
 		//Initializes first set of buttons
 		buttons = new JPanel();
-		buttons.setSize(new Dimension(500,500));
+		buttons.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Extras"));
 		
 		main = new JPanel();
+		
+		stats = new JPanel();
+		stats.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Stats"));
 		
 		//Initializes the Execute button 
 		//and sets the Click listener to this class
@@ -78,12 +95,16 @@ public class MainFrame extends JFrame implements ActionListener{
 		//Initializes a text field for command input
 		command = new JTextField(5);
 		
+		//Adds the label for the depth
+		depthLabel = new JLabel("Depth: " + this.depth);
+		
 		//adds the execute command button, label, and textfield
 		//to a panel to be displayed and formatted
 		buttons.add(cLabel);
 		buttons.add(command);
 		buttons.add(execute);
 		buttons.add(listDevices);
+		stats.add(depthLabel);
 		
 	
 		//initializes log panel for use in main frame
@@ -99,12 +120,16 @@ public class MainFrame extends JFrame implements ActionListener{
 		configPanel = new ConfigPanel(500,500,this);
 		
 		//adds the panels to the screen to display components
-		main.add(buttons, BorderLayout.WEST);
+		main.setLayout(new GridLayout(0,1));
+		main.add(controllerPanel);
+		main.add(stats);
+		main.add(buttons);
+		
 	
 		tabs = new JTabbedPane();
 		
 		tabs.addTab("Main",null, main, "Main display");
-		tabs.addTab("Controllers", null, controllerPanel, "Controller Configurations");		
+		//tabs.addTab("Controllers", null, controllerPanel, "Controller Configurations");		
 		tabs.addTab("Config", null, configPanel, "Main Configurations");
 		this.add(tabs, BorderLayout.WEST);
 		this.add(log, BorderLayout.EAST);
@@ -188,7 +213,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		}
 	}
 	
-	public void showJoyStickValues()
+	public void handleJoystick()
 	{
 		if(!this.checkJoyStick())
 		{
@@ -196,72 +221,95 @@ public class MainFrame extends JFrame implements ActionListener{
 		}
 		int x = this.joystick.getJoystick1X();
 		int y = this.joystick.getJoystick1Y();
-		int s = this.joystick.getMisc()[0];
 		
-		if(Math.abs(x - this.lastJoystick[0]) > this.joystickThreshold)
-		{
-			if(x >= 0 && x <= this.joystickThreshold)
-			{
-				this.log.debug("MOVING LEFT: "+x);
-				this.lastJoystick[0] = x;
-			}
-			else if( x >= (255-this.joystickThreshold) && x <= 255)
-			{
-				this.log.debug("MOVING RIGHT: "+x);
-				this.lastJoystick[0] = x;
-			}
-			else if( x >= 113 && x <= (113+this.joystickThreshold))
-			{
-				this.log.debug("STOPPING LR: "+x);
-				this.lastJoystick[0] = x;
-			}
-		}
+		int r = this.joystick.getJoystick2X();
 		
-		if(Math.abs(y - this.lastJoystick[1]) > this.joystickThreshold)
-		{
-			if(y >= 0 && y <= this.joystickThreshold)
-			{
-				this.log.debug("MOVING FORWARD: "+y);
-				this.lastJoystick[1] = y;
-			}
-			else if( y >= (255-this.joystickThreshold) && y <= 255)
-			{
-				this.log.debug("MOVING BACKWARD: "+y);
-				this.lastJoystick[1] = y;
-			}
-			else if( y >= 113 && y <= (113+this.joystickThreshold))
-			{
-				this.log.debug("STOPPING FB: "+y);
-				this.lastJoystick[1] = y;
-			}
-		}
+		//add -128 to the value so we get a scale of:
+		//               128
+		//                |
+		//                |
+		//                |
+		// -128 ----------0---------- 128
+		//                |
+		//                |
+		//                |
+		//              -128
 		
-		if(Math.abs(s - this.lastJoystick[3]) > this.joystickThreshold)
-		{
-			if(s >= 0 && s <= this.joystickThreshold)
+		x += -128;
+		y += -128;
+		r += -128;
+		
+		//We multiple the y axis by -1 just to get a more 
+		//familiar system.  i.e (forward is positive backward is negative)
+		y*= -1;
+		
+		//Check thresholds
+		x = this.checkThreshold(x);
+		y = this.checkThreshold(y);
+		r = this.checkThreshold(r);
+		
+		
+		//check if there was a change
+		if(this.lastJoystick != null && (x != this.lastJoystick[0] || y != this.lastJoystick[1] || r != this.lastJoystick[2]))
+		{	
+			//remember current values
+			this.lastJoystick[0] = x;
+			this.lastJoystick[1] = y;
+			this.lastJoystick[2] = r;
+			
+			//Only change if either coordinate is out side of the threshold
+			if(x != 0 || y != 0 || r != 0)
 			{
-				this.log.debug("TURNING LEFT: "+s);
-				this.lastJoystick[3] = s;
-			}
-			else if( s >= (255-this.joystickThreshold) && s <= 255)
-			{
-				this.log.debug("TURNING RIGHT: "+s);
-				this.lastJoystick[3] = s;
-			}
-			else if( s >= 113 && s <= (113+this.joystickThreshold))
-			{
-				this.log.debug("STOPPING STRAFE: "+s);
-				this.lastJoystick[3] = s;
+				// t1               t2
+				//
+				//
+				//
+				//
+				//
+				// t3               t4
+				int thruster1V = this.checkValue((-1 * y) + (-1 * x) + r);
+				int thruster2V = this.checkValue(y + (-1 * x) + r);
+				int thruster3V = this.checkValue((-1 * y) + x + r);
+				int thruster4V = this.checkValue(y + x + r);
+				
+				System.out.println("X: " + x + "Y: " + y + " R: " + r + " T1: " + thruster1V + " T2: " + thruster2V + " T3: " + thruster3V + " T4: " + thruster4V);
+				
 			}
 		}
 	}
 
+	private int checkValue(int x)
+	{
+		if(x >= 127)
+		{
+			return 127;
+		}
+		else if( x <= -127)
+		{
+			return -127;
+		}
+		else 
+		{
+			return x;
+		}
+	}
+	
+	private int checkThreshold(int x)
+	{
+		if(Math.abs(x) < this.joystickThreshold)
+		{
+			return 0;
+		}
+		
+		return x;
+	}
+	
 	public LogPanel getLog()
 	{
 		return this.log;
 	}
 	
-	public boolean checkJoyStick()
+	private boolean checkJoyStick()
 	{
 		
 		if(this.joystick == null && !this.loggedJoystickError)
@@ -284,7 +332,7 @@ public class MainFrame extends JFrame implements ActionListener{
 			this.loggedJoystickError = true;
 			return false;
 		}
-		else if(this.joystick != null && this.joystick.isRunning())
+		else if(this.joystick != null && this.joystick.isRunning() && this.joystick.getProductId() == Controller.getCurrentDevice().getProductId())
 		{
 			this.loggedJoystickError = false;
 			return true;
@@ -319,21 +367,43 @@ public class MainFrame extends JFrame implements ActionListener{
 		{
 			this.log.error("Device not connected");
 		}
-
 		
-		lastJoystick = new int[5];
-		//set initial starting points for joystick
-		lastJoystick[0] = this.joystick.getJoystick1X();
-		lastJoystick[1] = this.joystick.getJoystick1Y();
-		lastJoystick[3] = this.joystick.getMisc()[0];
-		
-		this.lastButton = new boolean[this.joystick.getButtons().length];
-		//set initial button points to false
-		for(int i = 0; i < this.lastButton.length; i++)
+		initLastArrays(true, true, true);
+	}
+	
+	public void initLastArrays(boolean joystick, boolean misc, boolean button)
+	{
+		if(joystick)
 		{
-			this.lastButton[i] = false;
+			lastJoystick = new int[5];
+			//set initial starting points for joystick
+			for(int i = 0; i < this.lastJoystick.length; i++)
+			{
+				this.lastJoystick[i] = 0;
+			}
+		}
+		
+		if(misc)
+		{
+			this.lastMisc = new int[this.joystick.getMisc().length];
+			//set initial misc values
+			for(int i = 0; i < this.lastMisc.length; i++)
+			{
+				this.lastMisc[i] = 0;
+			}
+		}
+		
+		if(button)
+		{
+			this.lastButton = new boolean[this.joystick.getButtons().length];
+			//set initial button points to false
+			for(int i = 0; i < this.lastButton.length; i++)
+			{
+				this.lastButton[i] = false;
+			}
 		}
 	}
+	
 	public Controller getJoystick()
 	{
 		return this.joystick;
@@ -342,6 +412,122 @@ public class MainFrame extends JFrame implements ActionListener{
 	public void resetClient()
 	{
 		robot = new Client(db.findIp(), Integer.parseInt(db.findPort()), this);
+	}
+	
+	public void handleButtons()
+	{
+		if(!this.checkJoyStick())
+		{
+			return;
+		}
+		
+		boolean[] buttons = this.joystick.getButtons();
+		
+		if(buttons == null)
+		{
+			return;
+		}
+		
+		for(int i = 0; i < buttons.length; i++)
+		{
+			if(buttons[i] && !this.lastButton[i])
+			{
+				switch(i)
+				{
+					case 1:
+						//This doesn't work
+						XboxController c = (XboxController)this.joystick;
+						byte[] report = new byte[]{(byte)0x00, (byte)0x06, (byte) 0x00,(byte)0xFF,(byte)0x00, (byte)0xFF};
+						try {
+							c.getDev().sendFeatureReport(report);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							this.log.error("INVALID REPORT");
+							e.printStackTrace();
+						}
+						break;
+					default:
+						this.log.debug("Button '"+i+"' is pushed.");
+						break;
+				}
+			}
+			else if(!buttons[i] && this.lastButton[i])
+			{
+				this.log.debug("Button '"+i+"' released.");
+			}
+			this.lastButton[i] = buttons[i];
+		}
+	}
+	
+	public void checkDepth()
+	{
+		if(!this.checkJoyStick())
+		{
+			return;
+		}
+		
+		if(this.lastButton == null)
+		{
+			initLastArrays(false, false, true);
+		}
+		
+		boolean[] buttons = this.joystick.getButtons();
+		boolean sink = buttons[4];
+		boolean rise = buttons[5];
+		boolean fast = buttons[0];
+		
+		int newDepth = this.depth;
+		
+		if(sink && (fast || !this.lastButton[4]))
+		{
+			newDepth += 1;
+		}
+		if(rise && (fast || !this.lastButton[5]))
+		{
+			newDepth -= 1f;
+		}
+		
+		if(newDepth < 0)
+		{
+			newDepth = 0;
+		}
+		this.lastButton[4] = sink;
+		this.lastButton[5] = rise;
+		this.lastButton[0] = fast;
+		if(newDepth != this.depth)
+		{
+			this.depth = (int) newDepth;
+			this.depthLabel.setText("Depth: " + this.depth);
+		}
+	}
+	
+	public void handleMiscs()
+	{
+		if(!this.checkJoyStick())
+		{
+			return;
+		}
+		
+		int[] miscs = this.joystick.getMisc();
+		
+		if(miscs == null)
+		{
+			return;
+		}
+		
+		for(int i = 0; i < miscs.length; i++)
+		{
+			if(miscs[i] != this.lastMisc[i])
+			{
+				switch(i)
+				{
+					default:
+						this.log.debug("Misc '"+i+"' value = "+miscs[i]);
+				}
+			}
+			this.lastMisc[i] = miscs[i];
+		}
+		
 	}
 	
 	public static void main(String[] args)
@@ -367,9 +553,17 @@ public class MainFrame extends JFrame implements ActionListener{
 		
 		while(true)
 		{
-			m.showJoyStickValues();
+			try
+			{
+				m.checkDepth();
+				m.handleButtons();
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+			}
 			try {
-				Thread.sleep(100);
+				Thread.sleep(10);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

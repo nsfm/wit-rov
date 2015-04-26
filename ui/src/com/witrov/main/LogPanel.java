@@ -124,7 +124,6 @@ public class LogPanel extends JPanel implements ActionListener{
 		if(size < logCount)
 		{
 			this.log.setPreferredSize(new Dimension(this.log.getWidth(), this.log.getHeight() + TEXT_SIZE));
-			this.repaint();
 			this.log.setCaretPosition(this.log.getDocument().getLength());
 		}
 	}

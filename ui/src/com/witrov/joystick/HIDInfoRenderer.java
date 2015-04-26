@@ -21,9 +21,17 @@ public class HIDInfoRenderer extends JLabel implements ListCellRenderer {
             setForeground(list.getForeground());
         }
 
-        //Set the icon and text.  If icon was null, say so.
+        //Set text if device is null make that the choose device
         HIDDeviceInfo dev = (HIDDeviceInfo) value;
-        setText(dev.getProduct_string());
+        
+        if(dev == null)
+        {
+        	setText("Please choose a joystick");
+        }
+        else
+        {
+        	setText(dev.getProduct_string());
+        }
 
         return this;
     }

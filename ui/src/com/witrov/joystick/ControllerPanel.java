@@ -3,9 +3,14 @@ package com.witrov.joystick;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+
+import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.border.BevelBorder;
+
 import com.codeminders.hidapi.HIDDeviceInfo;
 import com.witrov.main.MainFrame;
 
@@ -13,7 +18,9 @@ public class ControllerPanel extends JPanel implements ActionListener, Runnable{
 	
 	private JComboBox<HIDDeviceInfo> devices;				//a drop down to select a device
 	private MainFrame main;
-	private JLabel noDevices;
+	private JLabel noDevices, tLabel, devLabel;
+	private JTextArea threshold;
+	
 	public ControllerPanel(int height, int width, MainFrame main)
 	{
 		this.main = main;
@@ -27,11 +34,11 @@ public class ControllerPanel extends JPanel implements ActionListener, Runnable{
 			this.removeAll();
 		}
 		ArrayList<HIDDeviceInfo> devs = Controller.getDevices(false);
+		devs.add(0, null);
 		HIDDeviceInfo[] comboList = new HIDDeviceInfo[devs.size()];
 		devs.toArray(comboList);
 		
-		
-		if(comboList.length > 0)
+		if(comboList.length > 1)
 		{
 			devices = new JComboBox<HIDDeviceInfo>(comboList);
 			HIDInfoRenderer r = new HIDInfoRenderer();
@@ -63,6 +70,9 @@ public class ControllerPanel extends JPanel implements ActionListener, Runnable{
 			}
 			this.add(noDevices);
 		}
+		
+		this.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Joystick Settings"));
+		
 		main.repaint();
 	}
 
@@ -77,15 +87,24 @@ public class ControllerPanel extends JPanel implements ActionListener, Runnable{
 	private void createJoystick()
 	{
 		HIDDeviceInfo dev = devices.getItemAt(devices.getSelectedIndex());
+		
+		if(dev == null)
+		{
+			return;
+		}
+		
 		if(this.devices.getModel().getSize() > 0)
 		{
-			if(dev.getProduct_string().toLowerCase().contains("xbox"))
+			if(Controller.getCurrentDevice() == null || dev.getProduct_id() != Controller.getCurrentDevice().getProductId())
 			{
-				main.setJoyStick(new XboxController(dev.getVendor_id(), dev.getProduct_id()));
-			}
-			else
-			{
-				main.setJoyStick(new LogitechJoystick(dev.getVendor_id(), dev.getProduct_id()));
+				if(dev.getProduct_string().toLowerCase().contains("xbox"))
+				{
+					main.setJoyStick(new XboxController(dev.getVendor_id(), dev.getProduct_id()));
+				}	
+				else
+				{
+					main.setJoyStick(new LogitechJoystick(dev.getVendor_id(), dev.getProduct_id()));
+				}
 			}
 		}
 		else
@@ -104,7 +123,7 @@ public class ControllerPanel extends JPanel implements ActionListener, Runnable{
 				if(this.devices != null)
 				{
 					ArrayList<HIDDeviceInfo> devs = Controller.getDevices(false);
-					if(devs.size() != this.devices.getModel().getSize())
+					if(devs.size() != this.devices.getModel().getSize() -1)
 					{
 						this.init(false);
 					}

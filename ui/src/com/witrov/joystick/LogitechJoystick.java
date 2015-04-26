@@ -1,6 +1,7 @@
 package com.witrov.joystick;
 
 import java.io.IOException;
+
 import com.codeminders.hidapi.HIDDevice;
 import com.codeminders.hidapi.HIDManager;
 
@@ -22,13 +23,12 @@ public class LogitechJoystick extends Controller{
 	private int[] misc;
 	
 	private int analog;			//stores the direct of the joysticks analog stick
-								//these are in degrees of a circle so 90 is straight up
-								// 270 is straight down and so on
 	
 	private int numberOfButtons = 12;
 	private int numberOfMisc = 2;
 	
 	private boolean isRunning = true;
+	
 	
 	public LogitechJoystick(int vendorId, int productId)
 	{
@@ -45,6 +45,7 @@ public class LogitechJoystick extends Controller{
 		{
 			misc[i] = 0;
 		}
+		Controller.setCurrentDevice(this);
 		
 	}        
     
@@ -73,7 +74,6 @@ public class LogitechJoystick extends Controller{
 	            	dev.disableBlocking();
 	            	dev.enableBlocking();
 	            }
-	            
 	            
 	            while(isRunning)
 	            {
@@ -130,13 +130,30 @@ public class LogitechJoystick extends Controller{
 	                //
 	                
 	                //Get the two sets of button data for the joy stick
-	                    int buttonSetOne = this.checkDeviceValue(buf[4]);
-	                    int buttonSetTwo = this.checkDeviceValue(buf[6]);
+	                
+	                this.analog = Integer.parseInt(analogDirection);
+	                this.analog += 1;
+	                if(analog == 9)
+	                {
+	                	analog = 0;
+	                }
+	                
+                    int buttonSetOne = this.checkDeviceValue(buf[4]);
+                    int buttonSetTwo = this.checkDeviceValue(buf[6]);
 
-	                    super.processButtonSet(buttonSetTwo, 11, 8,  8, buttons);
-	                    super.processButtonSet(buttonSetOne, 7, 0, 128, buttons);
-	                                      
-	   
+                    super.processButtonSet(buttonSetTwo, 11, 8,  8, buttons);
+                    super.processButtonSet(buttonSetOne, 7, 0, 128, buttons);
+		                
+	                                       
+                    
+            	    for(int i=0; i<n; i++)
+            	    {
+            	        int v = buf[i];
+            	        System.err.print(v + " ");
+            	    }
+            	    System.err.println("");
+            	    
+                    
 	                try
 	                {
 	                    Thread.sleep(READ_UPDATE_DELAY_MS);
@@ -153,10 +170,7 @@ public class LogitechJoystick extends Controller{
 	        	isRunning = false;
 	        }
 	        
-			if(dev != null)
-	    	{
-	    		dev.close();
-	    	}
+    		dev.close();
 	        hid_mgr.release();    
 	        System.gc();
 	        
@@ -168,10 +182,12 @@ public class LogitechJoystick extends Controller{
     
     private int checkDeviceValue(int v)
     {
-    	if (v<0) v = v+256;
+    	if (v < 0)
+    	{
+    		v += 256;
+    	}
     	return v;
-    }
-    
+    }    
     
     public int getVendorId()
     {
