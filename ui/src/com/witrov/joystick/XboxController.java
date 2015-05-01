@@ -31,10 +31,13 @@ public class XboxController extends Controller {
 	
 	private boolean isRunning = true;
 	
-	public XboxController(int vendorId, int productId)
+	private int joystickNumber;
+	
+	public XboxController(int vendorId, int productId, int joystickNumber)
 	{
 		this.vendorId = vendorId;
 		this.productId = productId;
+		this.joystickNumber = joystickNumber;
 		buttons = new boolean[numberOfButtons];
 		for(int i = 0; i < numberOfButtons; i++)
 		{
@@ -46,7 +49,7 @@ public class XboxController extends Controller {
 		{
 			misc[i] = 0;
 		}
-		Controller.setCurrentDevice(this);
+		Controller.setCurrentDevice(this, this.joystickNumber);
 	}        
     
     /**
@@ -88,7 +91,7 @@ public class XboxController extends Controller {
 	                
 	                
 	                //process dpad index 11
-	                int dpad = (this.checkDeviceValue(buf[11]) - 64) / 4;
+	                this.dpad = (this.checkDeviceValue(buf[11]) - 64) / 4;
 	                
 	                
 	               /* for(int i = 0; i < n; i++)
@@ -132,7 +135,7 @@ public class XboxController extends Controller {
 			e1.printStackTrace();
 		}
 		
-		Controller.setCurrentDevice(null);
+		Controller.setCurrentDevice(null, this.joystickNumber);
     }
     
     private int checkDeviceValue(int v)
@@ -223,4 +226,8 @@ public class XboxController extends Controller {
 		return this.dev;
 	}
 
+	public int getJoystickNumber()
+	{
+		return this.joystickNumber;
+	}
 }

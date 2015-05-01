@@ -29,11 +29,14 @@ public class LogitechJoystick extends Controller{
 	
 	private boolean isRunning = true;
 	
+	private int joystickNumber;
 	
-	public LogitechJoystick(int vendorId, int productId)
+	
+	public LogitechJoystick(int vendorId, int productId, int joystickNumber)
 	{
 		this.vendorId = vendorId;
 		this.productId = productId;
+		this.joystickNumber = joystickNumber;
 		buttons = new boolean[numberOfButtons];
 		for(int i = 0; i < numberOfButtons; i++)
 		{
@@ -45,7 +48,7 @@ public class LogitechJoystick extends Controller{
 		{
 			misc[i] = 0;
 		}
-		Controller.setCurrentDevice(this);
+		Controller.setCurrentDevice(this, this.joystickNumber);
 		
 	}        
     
@@ -251,5 +254,10 @@ public class LogitechJoystick extends Controller{
 	@Override
 	public int[] getMisc() {
 		return misc;
+	}
+	
+	public int getJoystickNumber()
+	{
+		return this.joystickNumber;
 	}
 }

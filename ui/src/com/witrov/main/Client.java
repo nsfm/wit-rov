@@ -8,6 +8,8 @@ import java.net.UnknownHostException;
 
 import javax.swing.JOptionPane;
 
+import com.witrov.config.ArduinoPinConfig;
+
 
 public class Client {
 
@@ -33,7 +35,6 @@ public class Client {
 			main.getLog().info("Connected to "+ip);
 		} catch (IOException e) {
 			main.getLog().error("There was an error connecting to "+ip+" on port "+port+"");
-			e.printStackTrace();
 		}
 	}
 	
@@ -67,18 +68,17 @@ public class Client {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 		//parses the message to see if we received a 
 		//success response
-		if(message.contains("!"))
-		{
-			main.getLog().info("Command Successfully Executed ("+code+").");
-			return true;
-		}
-		else
+		if(message.contains("?"))
 		{
 			main.getLog().error("Could Not execute Command");
 			return false;
+		}
+		else
+		{
+			main.getLog().info("Sent "+code);
+			return true;
 		}
 	}
 	
@@ -87,7 +87,19 @@ public class Client {
 	 */
 	public boolean isConnected()
 	{
-		return this.socket.isConnected();
+		if(this.socket != null)
+		{
+			return this.socket.isConnected();
+		}
+		return false;
+	}
+	
+	/*
+	 * creates and executes a pin set command
+	 */
+	public void setPinMode(ArduinoPinConfig pin)
+	{
+		this.sendCode("p"+pin.pinNumberToString()+pin.getPinMode());
 	}
 	
 	/*
@@ -99,5 +111,11 @@ public class Client {
 		{
 			System.out.println(message);
 		}
+	}
+
+	public void setThruster(ArduinoPinConfig pin) {
+		
+		this.sendCode("s"+pin.pinNumberToString()+""+pin.getValue());
+		
 	}
 }

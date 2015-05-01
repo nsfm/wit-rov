@@ -68,7 +68,7 @@ public class LogPanel extends JPanel implements ActionListener{
 		this.setLayout(layout);
 
 		this.add(clear, BorderLayout.NORTH);
-		this.add(logScroll, BorderLayout.SOUTH);
+		this.add(logScroll);
 		
 		this.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Log"));
 	}
@@ -90,6 +90,11 @@ public class LogPanel extends JPanel implements ActionListener{
 	
 	private void append(String type, String message)
 	{
+		if(logCount > 100)
+		{
+			logCount = 0;
+			this.clearLog();
+		}
 		checkLogScrollLength();
 		String timeStamp = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss]").format(new Date());
 		String color = "black";
@@ -103,7 +108,7 @@ public class LogPanel extends JPanel implements ActionListener{
 		}
 		if(this.appendStyle == APPEND_TOP)
 		{
-			this.logList = "<div style='color: "+color+"'>"+timeStamp+" "+type+": "+message+"</div>" + this.logList;
+			this.logList += "<div style='color: "+color+"'>"+timeStamp+" "+type+": "+message+"</div>" + this.logList;
 		}
 		else
 		{
@@ -132,9 +137,14 @@ public class LogPanel extends JPanel implements ActionListener{
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == clear)
 		{
-			this.log.setText("");
-			this.logList = "";
+			clearLog();
 		}
 		
+	}
+	
+	public void clearLog()
+	{
+		this.log.setText("");
+		this.logList = "";
 	}
 }

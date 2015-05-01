@@ -75,4 +75,5 @@ public interface ControllerInterface {
 	
 	public void run();
 	
+	public int getJoystickNumber();
 }

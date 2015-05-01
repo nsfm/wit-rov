@@ -1,12 +1,9 @@
 package com.witrov.main;
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.GridLayout;
-import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -17,39 +14,41 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.border.BevelBorder;
 
+import com.witrov.config.ArduinoPinConfig;
 import com.witrov.config.ConfigPanel;
 import com.witrov.config.DatabaseHandle;
 import com.witrov.joystick.Controller;
 import com.witrov.joystick.ControllerPanel;
 import com.witrov.joystick.XboxController;
-import com.witrov.helpers.Vector;
-
 
 public class MainFrame extends JFrame implements ActionListener{
 	
 	private Client robot;						//handles main communcation with robot	
 	private JButton execute, 					//buttons to handle neccessary events
-				listDevices; 		
+				listDevices,
+				reconnect; 		
 	private JPanel main,						//panels to hold and format the view 
-				buttons,
-				stats;
-	private JLabel cLabel,
-					depthLabel;						//labels to show what is what
+				buttons;
+	private JLabel cLabel;						//labels to show what is what
+	private StatsPanel stats;
 	private JTextField command;					//input fields to get input from the user
 	private LogPanel log;						//Panel to print out log information
 	private JTabbedPane tabs;					//Tab pane to handle tabbed content
-	private ControllerPanel controllerPanel;		//panel for choosing and managing joysticks
-	private Controller joystick;					//Object to handle joystick input
+	private ControllerPanel[] controllerPanels;		//panel for choosing and managing joysticks
+	private Controller[] joysticks;					//Object to handle joystick 1 input
 	private ConfigPanel configPanel;
 	private DatabaseHandle db;
-	private boolean loggedJoystickError = false;	//This is just so we dont flood the log 
+	private boolean loggedJoystickError[];	//This is just so we dont flood the log 
 													//when we don't have a connected joystick
-	private int joystickThreshold = 20;
-	private int lastJoystick[];
-	private boolean lastButton[];
-	private int lastMisc[];
+	private int lastJoystick[][];
+	private boolean lastButton[][];
+	private int lastMisc[][];
+	
+	private int numberOfJoysticks;
 	
 	private int depth = 0;							//Value to set for the depth of the robot
+	
+	private int[] thrusterConfig;					//0 = front left, 1 = front right, 2 = back left, 3 = back right
 	
 	
 	/*
@@ -58,11 +57,12 @@ public class MainFrame extends JFrame implements ActionListener{
 	 * a connection with the arduino on the given
 	 * IP Address and port. Also sets the title of the UI.
 	 */
-	public MainFrame(String title)
+	public MainFrame(String title, int numberOfJoysticks)
 	{
 
 			this.setTitle(title);
 			this.db = new DatabaseHandle();
+			this.numberOfJoysticks = numberOfJoysticks;
 			init();
 	}
 	
@@ -71,14 +71,17 @@ public class MainFrame extends JFrame implements ActionListener{
 	 */
 	public void init()
 	{
+		this.loggedJoystickError = new boolean[this.numberOfJoysticks];
+		this.joysticks = new Controller[this.numberOfJoysticks];
+		Controller.initDevices(this.numberOfJoysticks);
+		this.thrusterConfig = new int[]{1,2,3,4};
 		//Initializes first set of buttons
 		buttons = new JPanel();
 		buttons.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Extras"));
 		
 		main = new JPanel();
 		
-		stats = new JPanel();
-		stats.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Stats"));
+		stats = new StatsPanel();
 		
 		//Initializes the Execute button 
 		//and sets the Click listener to this class
@@ -94,9 +97,10 @@ public class MainFrame extends JFrame implements ActionListener{
 		
 		//Initializes a text field for command input
 		command = new JTextField(5);
-		
-		//Adds the label for the depth
-		depthLabel = new JLabel("Depth: " + this.depth);
+				
+		//init reconnect button
+		reconnect = new JButton("Reconnect");
+		reconnect.addActionListener(this);
 		
 		//adds the execute command button, label, and textfield
 		//to a panel to be displayed and formatted
@@ -104,24 +108,31 @@ public class MainFrame extends JFrame implements ActionListener{
 		buttons.add(command);
 		buttons.add(execute);
 		buttons.add(listDevices);
-		stats.add(depthLabel);
+		buttons.add(reconnect);
 		
-	
 		//initializes log panel for use in main frame
 		log = new LogPanel(750,1000, LogPanel.APPEND_BOTTOM);
 		
-		//Initialize controllerPanel
-		controllerPanel = new ControllerPanel(500,500, this);
-		Thread updateController = new Thread(controllerPanel);
+		Controller.updateDevices();
 		
-		updateController.start();
+		//Initialize controller1Panel for joysticks
+		JPanel controllers = new JPanel();
+		controllers.setLayout(new GridLayout(0,1));
+		controllerPanels = new ControllerPanel[this.numberOfJoysticks];
+		for(int i = 0; i < this.numberOfJoysticks; i++)
+		{
+			controllerPanels[i] = new ControllerPanel(500,500, this, i+1);
+			Thread updateController = new Thread(controllerPanels[i]);
+			updateController.start();
+			controllers.add(controllerPanels[i]);
+		}
 		
 		//initalize config panel
 		configPanel = new ConfigPanel(500,500,this);
 		
 		//adds the panels to the screen to display components
 		main.setLayout(new GridLayout(0,1));
-		main.add(controllerPanel);
+		main.add(controllers);
 		main.add(stats);
 		main.add(buttons);
 		
@@ -140,17 +151,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		
 		this.setMinimumSize(this.getSize());
 	}
-	
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
-	 * 
-	 * Handles all Button clicks for the main view
-	 * 
-	 * 		e is the click event and the source will be the button
-	 * 			that was clicked
-	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		
@@ -169,6 +170,11 @@ public class MainFrame extends JFrame implements ActionListener{
 		else if(e.getSource() == listDevices)
 		{
 			this.log.info(Controller.showDevices(true, false));
+		}
+		else if(e.getSource() == reconnect)
+		{
+			this.log.info("Reconnection in progress...");
+			this.initConnection();
 		}
 
 	}
@@ -210,19 +216,38 @@ public class MainFrame extends JFrame implements ActionListener{
 		if(!debug)
 		{
 			robot = new Client(ip, Integer.parseInt(port), this);
+			
+			if(robot.isConnected())
+			{
+				for(ArduinoPinConfig pin : db.findAllPinConfigs())
+				{
+					switch(pin.getPinMode())
+					{
+						case 0:
+						case 1:
+						case 2:
+							robot.setPinMode(pin);
+						break;
+						case 3:
+							robot.setThruster(pin);
+						break;
+					}
+					log.info("Pin "+ pin.pinNumberToString() + " set to " +pin.pinModeToString());
+				}
+			}
 		}
 	}
 	
-	public void handleJoystick()
+	public void handleMainMovement(int joystickNumber)
 	{
-		if(!this.checkJoyStick())
+		if(!this.checkJoyStick(joystickNumber))
 		{
 			return;
 		}
-		int x = this.joystick.getJoystick1X();
-		int y = this.joystick.getJoystick1Y();
+		int x = this.joysticks[joystickNumber-1].getJoystick1X();
+		int y = this.joysticks[joystickNumber-1].getJoystick1Y();
 		
-		int r = this.joystick.getJoystick2X();
+		int r = this.joysticks[joystickNumber-1].getJoystick2X();
 		
 		//add -128 to the value so we get a scale of:
 		//               128
@@ -244,18 +269,18 @@ public class MainFrame extends JFrame implements ActionListener{
 		y*= -1;
 		
 		//Check thresholds
-		x = this.checkThreshold(x);
-		y = this.checkThreshold(y);
-		r = this.checkThreshold(r);
+		x = this.checkThreshold(x, joystickNumber);
+		y = this.checkThreshold(y, joystickNumber);
+		r = this.checkThreshold(r, joystickNumber);
 		
 		
 		//check if there was a change
-		if(this.lastJoystick != null && (x != this.lastJoystick[0] || y != this.lastJoystick[1] || r != this.lastJoystick[2]))
+		if(this.lastJoystick[joystickNumber-1] != null && (x != this.lastJoystick[joystickNumber-1][0] || y != this.lastJoystick[joystickNumber-1][1] || r != this.lastJoystick[joystickNumber-1][2]))
 		{	
 			//remember current values
-			this.lastJoystick[0] = x;
-			this.lastJoystick[1] = y;
-			this.lastJoystick[2] = r;
+			this.lastJoystick[joystickNumber-1][0] = x;
+			this.lastJoystick[joystickNumber-1][1] = y;
+			this.lastJoystick[joystickNumber-1][2] = r;
 			
 			//Only change if either coordinate is out side of the threshold
 			if(x != 0 || y != 0 || r != 0)
@@ -267,17 +292,28 @@ public class MainFrame extends JFrame implements ActionListener{
 				//
 				//
 				// t3               t4
-				int thruster1V = this.checkValue((-1 * y) + (-1 * x) + r);
-				int thruster2V = this.checkValue(y + (-1 * x) + r);
-				int thruster3V = this.checkValue((-1 * y) + x + r);
-				int thruster4V = this.checkValue(y + x + r);
 				
-				System.out.println("X: " + x + "Y: " + y + " R: " + r + " T1: " + thruster1V + " T2: " + thruster2V + " T3: " + thruster3V + " T4: " + thruster4V);
+				//added in ( 1 * var) for spacing 
+				int thruster1V = this.checkValue((-1 * y) + ( 1 * x) + (-1 * r));
+				int thruster2V = this.checkValue(( 1 * y) + ( 1 * x) + ( 1 * r));
+				int thruster3V = this.checkValue((-1 * y) + ( 1 * x) + (-1 * r));
+				int thruster4V = this.checkValue((-1 * y) + (-1 * x) + ( 1 * r));
+				
+				this.stats.getThruster(this.thrusterConfig[0]).setVelocity(thruster1V);
+				this.stats.getThruster(this.thrusterConfig[1]).setVelocity(thruster2V);
+				this.stats.getThruster(this.thrusterConfig[2]).setVelocity(thruster3V);
+				this.stats.getThruster(this.thrusterConfig[3]).setVelocity(thruster4V);
+				
+				this.robot.sendCode("t0"+(400 + thruster1V));
+				this.robot.sendCode("t1"+(400 + thruster1V));
+				this.robot.sendCode("t2"+(400 + thruster1V));
+				this.robot.sendCode("t3"+(400 + thruster1V));
 				
 			}
 		}
 	}
 
+	//Keep the value between -127-127
 	private int checkValue(int x)
 	{
 		if(x >= 127)
@@ -294,9 +330,10 @@ public class MainFrame extends JFrame implements ActionListener{
 		}
 	}
 	
-	private int checkThreshold(int x)
+	//dont use the data unless it is outside the range of the threshold
+	private int checkThreshold(int x, int joystickNumber)
 	{
-		if(Math.abs(x) < this.joystickThreshold)
+		if(Math.abs(x) < this.controllerPanels[joystickNumber-1].getThreshold())
 		{
 			return 0;
 		}
@@ -304,139 +341,166 @@ public class MainFrame extends JFrame implements ActionListener{
 		return x;
 	}
 	
+	//returns the log panel
 	public LogPanel getLog()
 	{
 		return this.log;
 	}
 	
-	private boolean checkJoyStick()
+	//checks if the joystick is in a running and usable state
+	private boolean checkJoyStick(int joystickNumber)
 	{
-		
-		if(this.joystick == null && !this.loggedJoystickError)
+		//is there a joystick selected?
+		if(this.joysticks[joystickNumber-1] == null && !this.loggedJoystickError[joystickNumber-1])
 		{
-			if(Controller.getDevices(false).size() <= 0)
+			//there arent any devices
+			if(Controller.getDevices().size() <= 0)
 			{
 				this.log.error("There are no Joysticks attached to the computer");
-				this.loggedJoystickError = true;
+				this.loggedJoystickError[joystickNumber-1] = true;
 			}
+			//User has not picked a joystick
 			else
 			{
 				this.log.error("Joystick is null. Please choose one from the Joystick tab.");
-				this.loggedJoystickError = true;
+				this.loggedJoystickError[joystickNumber-1] = true;
 			}
 			return false;
 		}
-		else if(!this.loggedJoystickError && !this.joystick.isRunning())
+		//if the joystick update thread is not running
+		else if(!this.loggedJoystickError[joystickNumber-1] && !this.joysticks[joystickNumber-1].isRunning())
 		{
 			this.log.error("Joystick encountered an error.  Please choose Joystick again in Joystick Tab");
-			this.loggedJoystickError = true;
+			this.loggedJoystickError[joystickNumber-1] = true;
 			return false;
 		}
-		else if(this.joystick != null && this.joystick.isRunning() && this.joystick.getProductId() == Controller.getCurrentDevice().getProductId())
+		//if the joystick is in a fully functional state
+		else if(this.joysticks[joystickNumber-1] != null && this.joysticks[joystickNumber-1].isRunning() && this.joysticks[joystickNumber-1].getProductId() == Controller.getCurrentDevice(joystickNumber).getProductId())
 		{
-			this.loggedJoystickError = false;
+			this.loggedJoystickError[joystickNumber-1] = false;
 			return true;
 		}
+		//if the joystick is in a different unknown state (not working right)
 		else
 		{
 			return false;
 		}
 	}
-	
-	public void setJoyStick(Controller joystick)
+	//Sets the joystick to a Controller device
+	public void setJoyStick(Controller joystick, int joystickNumber)
 	{
-		if(this.joystick != null)
+		//if there was already a joystick we will stop and remove that joystick
+		if(this.joysticks[joystickNumber-1] != null)
 		{
-			this.joystick.kill();
-			this.joystick = null;
+			this.joysticks[joystickNumber-1].kill();
+			this.joysticks[joystickNumber-1] = null;
 		}
+		
+		//If the selected joystick was disconnected between selection and creation
 		if(joystick == null)
 		{
 			this.log.info("Joystick is not connected");
 			return;
 		}
 		
-		this.joystick = joystick;
-		this.joystick.start();
+		//set the new joystick
+		this.joysticks[joystickNumber-1] = joystick;
+		//start the new joystick update function
+		this.joysticks[joystickNumber-1].start();
 		
-		if(this.joystick.isRunning())
+		//check if it is running correctly
+		if(this.joysticks[joystickNumber-1].isRunning())
 		{
-			this.log.info("Joystick initialized");
+			this.log.info("Joystick "+joystickNumber+" initialized");
 		}
+		//joystick is not running correctly
 		else
 		{
 			this.log.error("Device not connected");
 		}
 		
-		initLastArrays(true, true, true);
+		//reinitialize last joystick data
+		initLastArrays(true, true, true, joystickNumber);
 	}
 	
-	public void initLastArrays(boolean joystick, boolean misc, boolean button)
+	//Initialize last joystick data
+	public void initLastArrays(boolean joystick, boolean misc, boolean button, int joystickNumber)
 	{
+		//initializes the last joystick (x and y axies) data
 		if(joystick)
 		{
-			lastJoystick = new int[5];
+			lastJoystick = new int[this.numberOfJoysticks][5];
 			//set initial starting points for joystick
-			for(int i = 0; i < this.lastJoystick.length; i++)
+			for(int i = 0; i < this.lastJoystick[joystickNumber-1].length; i++)
 			{
-				this.lastJoystick[i] = 0;
+				this.lastJoystick[joystickNumber-1][i] = 0;
 			}
 		}
 		
+		//initializes the last misc data (any pressure sensitive button or other non joystick non button)
 		if(misc)
 		{
-			this.lastMisc = new int[this.joystick.getMisc().length];
+			this.lastMisc = new int[this.numberOfJoysticks][this.joysticks[joystickNumber-1].getMisc().length];
 			//set initial misc values
-			for(int i = 0; i < this.lastMisc.length; i++)
+			for(int i = 0; i < this.lastMisc[joystickNumber-1].length; i++)
 			{
-				this.lastMisc[i] = 0;
+				this.lastMisc[joystickNumber-1][i] = 0;
 			}
 		}
 		
+		//initializes the pressed button data
 		if(button)
 		{
-			this.lastButton = new boolean[this.joystick.getButtons().length];
+			this.lastButton = new boolean[this.numberOfJoysticks][this.joysticks[joystickNumber-1].getButtons().length];
 			//set initial button points to false
-			for(int i = 0; i < this.lastButton.length; i++)
+			for(int i = 0; i < this.lastButton[joystickNumber-1].length; i++)
 			{
-				this.lastButton[i] = false;
+				this.lastButton[joystickNumber-1][i] = false;
 			}
 		}
 	}
 	
-	public Controller getJoystick()
+	//returns a Controller object
+	public Controller getJoystick(int joystickNumber)
 	{
-		return this.joystick;
+		return this.joysticks[joystickNumber-1];
 	}
 	
+	//resets the connection the the arduino
 	public void resetClient()
 	{
 		robot = new Client(db.findIp(), Integer.parseInt(db.findPort()), this);
 	}
 	
-	public void handleButtons()
+	//handles button pushes.
+	//This should probably only be used for debugging
+	public void handleButtons(int joystickNumber)
 	{
-		if(!this.checkJoyStick())
+		//check if joystick is functional
+		if(!this.checkJoyStick(joystickNumber))
 		{
 			return;
 		}
 		
-		boolean[] buttons = this.joystick.getButtons();
+		////get current button states
+		boolean[] buttons = this.joysticks[joystickNumber-1].getButtons();
 		
 		if(buttons == null)
 		{
 			return;
 		}
 		
+		//loop through each button and perform a task based on the button
 		for(int i = 0; i < buttons.length; i++)
 		{
-			if(buttons[i] && !this.lastButton[i])
+			if(buttons[i] && !this.lastButton[joystickNumber-1][i])
 			{
 				switch(i)
 				{
+				//attempt to change the xbox controller LED
 					case 1:
 						//This doesn't work
-						XboxController c = (XboxController)this.joystick;
+						XboxController c = (XboxController)this.joysticks[joystickNumber-1];
 						byte[] report = new byte[]{(byte)0x00, (byte)0x06, (byte) 0x00,(byte)0xFF,(byte)0x00, (byte)0xFF};
 						try {
 							c.getDev().sendFeatureReport(report);
@@ -446,90 +510,191 @@ public class MainFrame extends JFrame implements ActionListener{
 							e.printStackTrace();
 						}
 						break;
+					//print out what button is being pressed
 					default:
 						this.log.debug("Button '"+i+"' is pushed.");
 						break;
 				}
 			}
-			else if(!buttons[i] && this.lastButton[i])
+			//say that the button is released
+			else if(!buttons[i] && this.lastButton[joystickNumber-1][i])
 			{
 				this.log.debug("Button '"+i+"' released.");
 			}
-			this.lastButton[i] = buttons[i];
+			//set the last button state to the current state
+			this.lastButton[joystickNumber-1][i] = buttons[i];
 		}
 	}
 	
-	public void checkDepth()
+	//handle the depth change
+	public void checkDepth(int joystickNumber)
 	{
-		if(!this.checkJoyStick())
+		//check if joystick is functioning properly
+		if(!this.checkJoyStick(joystickNumber))
 		{
 			return;
 		}
 		
+		//if lasts arent initialized initilize them
 		if(this.lastButton == null)
 		{
-			initLastArrays(false, false, true);
+			initLastArrays(false, false, true, joystickNumber);
 		}
 		
-		boolean[] buttons = this.joystick.getButtons();
+		//get current button states
+		boolean[] buttons = this.joysticks[joystickNumber-1].getButtons();
+		//get only the buttons we need
 		boolean sink = buttons[4];
 		boolean rise = buttons[5];
 		boolean fast = buttons[0];
 		
+		//get the current depth
 		int newDepth = this.depth;
 		
-		if(sink && (fast || !this.lastButton[4]))
+		//if the sink button is pressed and the fast button is pressed or
+		//if the sink button is pressed and last time it wasnt
+		//increment the depth by 1
+		if(sink && (fast || !this.lastButton[joystickNumber-1][4]))
 		{
 			newDepth += 1;
 		}
-		if(rise && (fast || !this.lastButton[5]))
+		//if the rise button is pressed and the fast button is pressed or
+		//if the rise button is pressed and last time it wasnt
+		//decrement the depth by 1
+		if(rise && (fast || !this.lastButton[joystickNumber-1][5]))
 		{
 			newDepth -= 1f;
 		}
 		
+		//depth cannot be less than 0
 		if(newDepth < 0)
 		{
 			newDepth = 0;
 		}
-		this.lastButton[4] = sink;
-		this.lastButton[5] = rise;
-		this.lastButton[0] = fast;
+		
+		//track last button states
+		this.lastButton[joystickNumber-1][4] = sink;
+		this.lastButton[joystickNumber-1][5] = rise;
+		this.lastButton[joystickNumber-1][0] = fast;
+		
+		//if the depth is different update the robot and the view
 		if(newDepth != this.depth)
 		{
 			this.depth = (int) newDepth;
-			this.depthLabel.setText("Depth: " + this.depth);
+			this.stats.setDepth(this.depth);
 		}
 	}
 	
-	public void handleMiscs()
+	//handles changing the camera and forward direction
+	public void hanldeCameraChange(int joystickNumber)
 	{
-		if(!this.checkJoyStick())
+		if(!this.checkJoyStick(joystickNumber))
 		{
 			return;
 		}
 		
-		int[] miscs = this.joystick.getMisc();
+		Controller j = this.joysticks[joystickNumber-1];
+		
+		int camera = j.getDPad();
+		
+		switch(camera)
+		{
+			case 0:
+				//hasn't changed
+				break;
+			case 1:
+				//forward
+				this.setThrusterConfig(1, 2, 3, 4);
+				break;
+			case 3:
+				//right
+				this.setThrusterConfig(2, 4, 1, 3);
+				break;
+			case 5:
+				//backward
+				this.setThrusterConfig(4, 3, 2, 1);
+				break;
+			case 7:
+				//left
+				this.setThrusterConfig(3, 1, 4, 2);
+				break;
+			default:
+				//angle between one of the buttons
+				//or stopped
+				break;
+		}
+		
+	}
+	
+	public void setThrusterConfig(int a, int b, int c, int d)
+	{
+		//store old velocities
+		int oldV1 = this.stats.getThruster(thrusterConfig[0]).getVelocity();
+		int oldV2 = this.stats.getThruster(thrusterConfig[1]).getVelocity();
+		int oldV3 = this.stats.getThruster(thrusterConfig[2]).getVelocity();
+		int oldV4 = this.stats.getThruster(thrusterConfig[3]).getVelocity();
+		
+		//set new thruster config
+		this.thrusterConfig[0] = a;
+		this.thrusterConfig[1] = b;
+		this.thrusterConfig[2] = c;
+		this.thrusterConfig[3] = d;
+		
+		this.stats.getThruster(a).setLocation("Front Left");
+		this.stats.getThruster(b).setLocation("Front Right");
+		this.stats.getThruster(c).setLocation("Back Left");
+		this.stats.getThruster(d).setLocation("Back Right");
+		
+		this.stats.getThruster(a).setVelocity(oldV1);
+		this.stats.getThruster(b).setVelocity(oldV2);
+		this.stats.getThruster(c).setVelocity(oldV3);
+		this.stats.getThruster(d).setVelocity(oldV4);
+	}
+	
+	//handle misc buttons and knobs and such
+	//this should only be used for debug or test purposes
+	public void handleMiscs(int joystickNumber)
+	{
+		//check if the joystick is functional
+		if(!this.checkJoyStick(joystickNumber))
+		{
+			return;
+		}
+		
+		//get current misc states
+		int[] miscs = this.joysticks[joystickNumber-1].getMisc();
 		
 		if(miscs == null)
 		{
 			return;
 		}
 		
+		//loop through each misc object
 		for(int i = 0; i < miscs.length; i++)
 		{
-			if(miscs[i] != this.lastMisc[i])
+			//if it has changed
+			if(miscs[i] != this.lastMisc[joystickNumber-1][i])
 			{
 				switch(i)
 				{
+					//log that the object was changed
 					default:
 						this.log.debug("Misc '"+i+"' value = "+miscs[i]);
 				}
 			}
-			this.lastMisc[i] = miscs[i];
+			//record current state
+			this.lastMisc[joystickNumber-1][i] = miscs[i];
 		}
 		
 	}
 	
+	//get the connection to the robot
+	public Client getRobot()
+	{
+		return this.robot;
+	}
+	
+	//main function
 	public static void main(String[] args)
 	{
 		String title = "WIT-ROV"; 		//title for UI
@@ -537,9 +702,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		//Creates a new MainFrame object and passes the 
 		//IP Address of the Arduino this is currently hardcoded in
 		//the arduino.cpp file.  Also passes the title for the UI.
-		MainFrame m = new MainFrame(title);
-		
-		m.setState(JFrame.MAXIMIZED_BOTH);
+		MainFrame m = new MainFrame(title, 2);
 		
 		//Displays the UI
 		m.setVisible(true);
@@ -548,15 +711,19 @@ public class MainFrame extends JFrame implements ActionListener{
 		//when the UI closes
 		m.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
+		//Maximize window
+		m.setExtendedState(JFrame.MAXIMIZED_BOTH);
+		
 		//Create connection to arduino
-		//m.initConnection();
+		m.initConnection();
 		
 		while(true)
 		{
 			try
 			{
-				m.checkDepth();
-				m.handleButtons();
+				m.handleMainMovement(1);
+				m.checkDepth(1);
+				m.hanldeCameraChange(1);
 			}
 			catch(Exception e)
 			{

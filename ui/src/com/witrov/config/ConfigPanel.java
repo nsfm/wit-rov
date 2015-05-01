@@ -1,14 +1,27 @@
 package com.witrov.config;
 
+import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
 import com.witrov.main.MainFrame;
 
 public class ConfigPanel extends JPanel implements ActionListener{
@@ -17,7 +30,8 @@ public class ConfigPanel extends JPanel implements ActionListener{
 	private JLabel ipLabel, portLabel;
 	private JTextField ipField, portField;
 	private JButton save;
-	private JPanel ipPanel, portPanel;
+	private JPanel ipPanel, portPanel, buttonsPanel;
+	private PinConfigPanel pinConfigPanel;
 	
 	public ConfigPanel(int height, int width, MainFrame main)
 	{
@@ -28,6 +42,10 @@ public class ConfigPanel extends JPanel implements ActionListener{
 	private void init(int height, int width)
 	{
 		DatabaseHandle db = new DatabaseHandle();
+		
+		buttonsPanel = new JPanel();
+		
+		pinConfigPanel = new PinConfigPanel(this.main);
 		
 		ipPanel = new JPanel();
 		ipLabel = new JLabel("Arduino IP:");
@@ -46,9 +64,17 @@ public class ConfigPanel extends JPanel implements ActionListener{
 		
 		save = new JButton("Save Changes");
 		save.addActionListener(this);
+		
+		buttonsPanel.add(save);
+		
+		
+		this.setLayout(new GridLayout(0,1));
+		
 		this.add(ipPanel);
 		this.add(portPanel);
-		this.add(save);
+		this.add(pinConfigPanel);
+		this.add(buttonsPanel);
+		
 		db.closeConnection();
 	}
 
@@ -58,6 +84,7 @@ public class ConfigPanel extends JPanel implements ActionListener{
 		{
 			checkIpPort();
 		}
+		
 	}
 	
 	public void checkIpPort()
@@ -107,4 +134,5 @@ public class ConfigPanel extends JPanel implements ActionListener{
 			main.getLog().error("Could not connect to IP: "+ip+" on Port: "+port);
 		}
 	}
+	
 }

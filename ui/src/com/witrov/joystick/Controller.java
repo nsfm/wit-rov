@@ -3,19 +3,21 @@ package com.witrov.joystick;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.swing.JOptionPane;
+
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import com.codeminders.hidapi.HIDDevice;
 import com.codeminders.hidapi.HIDDeviceInfo;
 import com.codeminders.hidapi.HIDManager;
 
-public abstract class Controller extends Thread implements ControllerInterface{
+public abstract class Controller extends Thread implements ControllerInterface, Runnable{
 	
 	public static final int BUFSIZE = 2048;
 	public static final long READ_UPDATE_DELAY_MS = 10L;
 	
-	private static Controller currentDev = null;
-	
+	private static Controller[] currentDev = null;
+	private static ArrayList<HIDDeviceInfo> devices = new ArrayList<HIDDeviceInfo>();
 	//List of supported devices
 	//To create a new supported device add the product name here and create a class
 	//For that device that extends controller and use the run function to parse the data coming
@@ -25,72 +27,57 @@ public abstract class Controller extends Thread implements ControllerInterface{
 	
 	public static String[] supportedProducts = new String[]{ //this is a list of the supported devices
 		//"Logitech Extreme 3D",
-		"XBOX 360"
+		"xbox 360"
 	};
 	
 	
 	//Loads in proper native library
     static
-    {
-    	if(System.getProperty("os.name").toLowerCase().contains("windows"))
+    {    
+    	try
     	{
-    		if(System.getProperty("os.arch").contains("64"))
-    		{
-    			System.loadLibrary("hidapi-jni-64");
-    		}
-    		else
-    		{
-    			System.loadLibrary("hidapi-jni-32");
-    		}
+	    	if(System.getProperty("os.name").toLowerCase().contains("windows"))
+	    	{
+	    		if(System.getProperty("os.arch").contains("64"))
+	    		{
+	    			System.loadLibrary("hidapijni64");
+	    		}
+	    		else
+	    		{
+	    			System.loadLibrary("hidapijni32");
+	    		}
+	    	}
+	    	else if(System.getProperty("os.name").toLowerCase().contains("linux") || System.getProperty("os.name").toLowerCase().contains("mac"))
+	    	{
+	    		if(System.getProperty("os.arch").contains("64"))
+	    		{
+	    			System.loadLibrary("libhidapijni64");
+	    		}
+	    		else
+	    		{
+	    			System.loadLibrary("libhidapijni32");
+	    		}
+	    	}
+	    	else
+	    	{
+	    		JOptionPane.showMessageDialog(null, "This operating System is not Supported: "+System.getProperty("os.name"), "Unsupported Operating System", JOptionPane.ERROR);
+	    		System.exit(0);
+	    	}
     	}
-    	else if(System.getProperty("os.name").toLowerCase().contains("linux") || System.getProperty("os.name").toLowerCase().contains("mac"))
+    	catch(Exception e)
     	{
-    		if(System.getProperty("os.arch").contains("64"))
-    		{
-    			System.loadLibrary("libhidapi-jni-64");
-    		}
-    		else
-    		{
-    			System.loadLibrary("libhidapi-jni-32");
-    		}
+    		JOptionPane.showMessageDialog(null, "An Unkown Error Occured: "+ e.getMessage(), "Unkown Error", JOptionPane.ERROR);
+    		System.exit(0);
     	}
-    	else
-    	{
-    		System.err.println("This Operating System is not Supported: "+ System.getProperty("os.name"));
-    	}
-        
     }
         
     /**
      * Static function to find the list HID devices
      * attached to the system.
      */
-    public static ArrayList<HIDDeviceInfo> getDevices(boolean allDevices)
+    public static ArrayList<HIDDeviceInfo> getDevices()
     {
-    	ArrayList<HIDDeviceInfo> list = new ArrayList<HIDDeviceInfo>();
-        try
-        {
-            HIDManager manager = HIDManager.getInstance();
-            HIDDeviceInfo[] allDevs = manager.listDevices();
-            if(allDevs != null)
-            {
-	            for(int i=0;i<allDevs.length;i++)
-	            {
-	            	if(isSupported(allDevs[i].getProduct_string()) || allDevices)
-	            	{
-	            		list.add(allDevs[i]);
-	            	}
-	            }
-            }
-            
-            System.gc();
-        }
-        catch(IOException e)
-        {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-        }
-        return list;
+    	return devices;
     }
     /**
      * Static function to find the list HID devices
@@ -99,12 +86,9 @@ public abstract class Controller extends Thread implements ControllerInterface{
     public static String showDevices(boolean allInfo, boolean allDevices)
     {
     	String list = "";
-       
-    	ArrayList<HIDDeviceInfo> devs = getDevices(allDevices);
-    	
-    	for(HIDDeviceInfo h : devs)
+    	for(HIDDeviceInfo h : devices)
     	{
-    		list += "========"+h.getProduct_string()+"=========";
+    		list += "<br>========"+h.getProduct_string()+"=========";
     		list += "<ul><li>PRODUCT ID: "+h.getProduct_id()+"</li>";
     		list += "<li>VENDOR ID: "+h.getVendor_id()+"</li>";
     		if(allInfo)
@@ -117,20 +101,20 @@ public abstract class Controller extends Thread implements ControllerInterface{
     			list += "<li>USAGE PAGE: "+h.getUsage_page()+"</li>";
     		}
     		list += "</ul>";
-    		list += "=================================<br><br>";
+    		list += "=================================<br>";
     	}
         
     	System.gc();
         
     	return list;
     }
-    private static boolean isSupported(String productName)
+    public static boolean isSupported(String productName)
     {
     	if(productName != null)
     	{
 	    	for(int i = 0; i < supportedProducts.length; i++)
 	    	{
-	    		if(productName.contains(supportedProducts[i]))
+	    		if(productName.toLowerCase().contains(supportedProducts[i]))
 	    		{
 	    			return true;
 	    		}
@@ -176,10 +160,7 @@ public abstract class Controller extends Thread implements ControllerInterface{
     		}
     	}
     }    
-    public void run()
-    {
-
-	        /*
+        /*
 	    for(int i=0; i<n; i++)
 	    {
 	        int v = buf[i];
@@ -188,19 +169,107 @@ public abstract class Controller extends Thread implements ControllerInterface{
 	    }
 	    System.err.println("");
 	    */
-    	throw new NotImplementedException();
-    }
-    
-    public static void setCurrentDevice(Controller c)
+
+    public static void setCurrentDevice(Controller c, int joystickNumber)
     {
-    	if(currentDev != null)
+    	if(currentDev[joystickNumber-1] != null)
     	{
-    		currentDev.kill();
+    		currentDev[joystickNumber-1].kill();
     	}
-    	currentDev = c;
+    	currentDev[joystickNumber-1] = c;
     }
-    public static Controller getCurrentDevice()
+    public static Controller getCurrentDevice(int joystickNumber)
+    {
+    	return currentDev[joystickNumber-1];
+    }
+    public static Controller[] getCurrentDevices()
     {
     	return currentDev;
+    }
+    public static void initDevices(int joystickNumber)
+    {
+    	currentDev = new Controller[joystickNumber];
+    }
+    
+    public static void updateDevices()
+    {
+	  	//start update devices thread
+    	Thread updateDevices = new Thread(new Runnable(){
+    		@Override
+    		public void run() {
+    			while(true)
+    			{
+    		        try
+    		        {
+    		            HIDManager manager = HIDManager.getInstance();
+    		            HIDDeviceInfo[] allDevs = manager.listDevices();
+    		            ArrayList<HIDDeviceInfo> currentDevs = Controller.getDevices();
+    		            if(allDevs != null)
+    		            {
+    		            	//add new devices
+    			            for(int i=0;i<allDevs.length;i++)
+    			            {
+    			            	if(Controller.isSupported(allDevs[i].getProduct_string()))
+    			            	{
+    			            		boolean found = false;
+    			            		
+    			            		for(int j = 0; j < currentDevs.size(); j++)
+    			            		{
+    			            			if(currentDevs.get(j) == null)
+    			            			{
+    			            				break;
+    			            			}
+    			            			if(allDevs[i].getProduct_id() == currentDevs.get(j).getProduct_id() && allDevs[i].getVendor_id() == currentDevs.get(j).getVendor_id())
+    			            			{
+    			            				found = true;
+    			            			}
+    			            		}
+    			            		if(!found)
+    			            		{
+    			            			currentDevs.add(allDevs[i]);
+    			            		}
+    			            	}
+    			            }
+    			            
+    			            //remove unplugged devices
+    			            for(int i=0;i<currentDevs.size();i++)
+    			            {
+    			            	boolean found = false;
+    			            	for(int j = 0; j < allDevs.length; j++)
+    			            	{
+    			            		if((allDevs[j].getProduct_id() == currentDevs.get(i).getProduct_id() && allDevs[j].getVendor_id() == currentDevs.get(i).getVendor_id()))
+    			            		{
+    			            			found = true;
+    			            		}
+    			            	}
+    			            	if(!found)
+    			            	{
+    			            		currentDevs.remove(i);
+    			            	}
+    			            }
+    		            }
+    		            else
+    		            {
+    		            	//no devices clear array
+    		            	currentDevs.clear();
+    		            }
+    		            System.gc();
+    		            try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+    		        }
+    		        catch(IOException e)
+    		        {
+    		            System.out.println(e.getMessage());
+    		            e.printStackTrace();
+    		        }
+    			}
+    			
+    		}
+    	});
+    	updateDevices.start();
     }
 }
