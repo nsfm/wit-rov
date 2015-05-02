@@ -1,4 +1,7 @@
 package com.witrov.main;
+import java.awt.BorderLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -6,7 +9,10 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
+import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JProgressBar;
 
 import com.witrov.config.ArduinoPinConfig;
 
@@ -18,6 +24,7 @@ public class Client {
 	private PrintWriter out;		//the writer to send data tot the robot
 	private boolean debug;			//boolean to set whether to print debug data or not
 	private MainFrame main;
+	private static boolean connecting = false;
 	
 	/*
 	 * Creates connection to ip on given port and opens a line of 
@@ -26,15 +33,63 @@ public class Client {
 	 */
 	public Client(String ip, int port, MainFrame main)
 	{
+		
+		final JOptionPane optionPane = new JOptionPane("Attempting Connection to "+ip+" on port "+port+"...", JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
+
+		final JDialog dialog = new JDialog();
+		dialog.setTitle("Connecting...");
+		dialog.setModal(true);
+
+		dialog.setContentPane(optionPane);
+
+		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+		
+		final JProgressBar progress = new JProgressBar();
+		progress.setIndeterminate(true);
+		progress.setString("Connecting...");
+		progress.setStringPainted(true);
+		
+		dialog.add(progress);
+		
+		dialog.pack();
+		
+		dialog.setLocationRelativeTo(null);
+		
+		this.main = main;
+		
+		Thread checkClose = new Thread(new Runnable(){
+			@Override
+			public void run()
+			{
+				while(true)
+				{
+					if(!dialog.isValid() && Client.isConnecting())
+					{
+						System.exit(-1);
+					}
+				}
+			}
+		});
+		
+		checkClose.start();
+		
+		
 		try {
-			this.main = main;
-			main.getLog().info("Attempting Connection to "+ip+" on port "+port+"...");
+			
+			dialog.setVisible(true);
+			Client.connecting = true;
 			socket = new Socket(ip, port);
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			out = new PrintWriter(socket.getOutputStream());
+			dialog.dispose();
 			main.getLog().info("Connected to "+ip);
+			Client.connecting = false;
+			
 		} catch (IOException e) {
-			main.getLog().error("There was an error connecting to "+ip+" on port "+port+"");
+			Client.connecting = false;
+			dialog.dispose();
+			JOptionPane.showMessageDialog(this.main, "There was an error connecting to "+ip+" on port "+port+"", "Error", JOptionPane.ERROR_MESSAGE);
+			
 		}
 	}
 	
@@ -46,6 +101,11 @@ public class Client {
 	 */
 	public boolean sendCode(String code)
 	{
+		if(!this.isConnected())
+		{
+			return false;
+		}
+			
 		//does some small verification to make sure that
 		//that the opcode isn't to long to kill the buffer 
 		//on the arduino side.  The buffer cna only handle 8 bit 
@@ -117,5 +177,10 @@ public class Client {
 		
 		this.sendCode("s"+pin.pinNumberToString()+""+pin.getValue());
 		
+	}
+	
+	public static boolean isConnecting()
+	{
+		return connecting;
 	}
 }

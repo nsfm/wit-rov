@@ -36,15 +36,16 @@ public abstract class Controller extends Thread implements ControllerInterface, 
     {    
     	try
     	{
+    		String winBaseFile = System.getProperty("user.home")+"\\AppData\\Roaming\\WIT_ROV\\lib\\";
 	    	if(System.getProperty("os.name").toLowerCase().contains("windows"))
 	    	{
 	    		if(System.getProperty("os.arch").contains("64"))
 	    		{
-	    			System.loadLibrary("hidapijni64");
+	    			System.load(winBaseFile + "hidapijni64.dll");
 	    		}
 	    		else
 	    		{
-	    			System.loadLibrary("hidapijni32");
+	    			System.load(winBaseFile + "hidapijni32.dll");
 	    		}
 	    	}
 	    	else if(System.getProperty("os.name").toLowerCase().contains("linux") || System.getProperty("os.name").toLowerCase().contains("mac"))

@@ -6,8 +6,8 @@ import java.util.ArrayList;
 
 public class DatabaseHandle {
 	
-	private String dbName = "test.db";
-	private String dbPath = System.getProperty("user.home")+"\\WIT_ROV";
+	private String dbName = "wit_rov.db";
+	private String dbPath = System.getProperty("user.home")+"\\AppData\\Roaming\\WIT_ROV\\DB";
 	private Connection c;
 	public DatabaseHandle()
 	{

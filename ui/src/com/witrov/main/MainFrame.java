@@ -703,6 +703,9 @@ public class MainFrame extends JFrame implements ActionListener{
 		//IP Address of the Arduino this is currently hardcoded in
 		//the arduino.cpp file.  Also passes the title for the UI.
 		MainFrame m = new MainFrame(title, 2);
+	
+		//Create connection to arduino
+		m.initConnection();
 		
 		//Displays the UI
 		m.setVisible(true);
@@ -714,8 +717,6 @@ public class MainFrame extends JFrame implements ActionListener{
 		//Maximize window
 		m.setExtendedState(JFrame.MAXIMIZED_BOTH);
 		
-		//Create connection to arduino
-		m.initConnection();
 		
 		while(true)
 		{
