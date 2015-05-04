@@ -49,6 +49,16 @@ X = id, 0-7
 YYY = value, 000-800
 return: nothing useful
 Note: a speed of 000 is full reverse; 800 is full forward. 400 is stop.
+
+Read Pressure
+u\n
+No additional parameters
+return: some kind of depth in pascals or millibar or something
+
+Read External Temperature
+i\n
+No additional parameters
+return: external temperature in Celsius
 ```
 
 ###UI\Laptop Setup
