@@ -1,4 +1,4 @@
-package com.witrov.config;
+Package com.witrov.config;
 
 import java.io.File;
 import java.sql.*;
@@ -6,8 +6,15 @@ import java.util.ArrayList;
 
 public class DatabaseHandle {
 	
+        private String OS = System.getProperty("os.name").toLowerCase();
 	private String dbName = "wit_rov.db";
-	private String dbPath = System.getProperty("user.home")+"\\AppData\\Roaming\\WIT_ROV\\DB";
+        if (OS.indexOf("linux") >= 0) {
+              // Linux
+              private String dbPath = System.getProperty("user.home");
+        } else {
+              // Windows
+	      private String dbPath = System.getProperty("user.home")+"\\AppData\\Roaming\\WIT_ROV\\DB";
+        }
 	private Connection c;
 	public DatabaseHandle()
 	{
