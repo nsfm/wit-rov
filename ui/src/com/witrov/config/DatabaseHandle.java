@@ -16,13 +16,13 @@ public class DatabaseHandle {
             if (OS.indexOf("windows") >= 0) 
             {
                  // Windows
-	         dbPath = System.getProperty("user.home")+"\\AppData\\Roaming\\WIT_ROV\\DB\\";
+            	dbPath = System.getProperty("user.home")+"\\AppData\\Roaming\\WIT_ROV\\DB\\";
             } 
             else
             {
                  // Linux
                  //Mac
-                 dbPath = System.getProperty("user.home")+"/WIT_ROV/DB";
+                 dbPath = System.getProperty("user.home")+"/WIT_ROV/DB/";
             }
 	    try {
 	      Class.forName("org.sqlite.JDBC");
@@ -30,7 +30,7 @@ public class DatabaseHandle {
               System.out.println("DBPATH: "+dbPath);
 	      File f = new File(dbPath);
 	      f.mkdirs();
-	      c = DriverManager.getConnection("jdbc:sqlite:"+f.getAbsolutePath()+dbName);
+	      c = DriverManager.getConnection("jdbc:sqlite:"+dbPath+dbName);
             
 	      Statement stmt = c.createStatement();
 	      String config = "CREATE TABLE IF NOT EXISTS config " +
