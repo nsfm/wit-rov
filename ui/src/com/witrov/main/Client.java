@@ -56,7 +56,9 @@ public class Client {
 		dialog.setLocationRelativeTo(null);
 		
 		this.main = main;
-		
+		final MainFrame maint = main;
+		final String ipt = ip;
+		final int portt = port;	
 		Thread checkClose = new Thread(new Runnable(){
 			@Override
 			public void run()
@@ -71,16 +73,16 @@ public class Client {
 					{
 						try {
 							Client.connecting = true;
-							socket = new Socket(ip, port);
+							socket = new Socket(ipt, portt);
 							in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 							out = new PrintWriter(socket.getOutputStream());
-							main.getLog().info("Connected to "+ip);
+							maint.getLog().info("Connected to "+ipt);
 							Client.connecting = false;
 							dialog.dispose();
 						} catch (IOException e) {
 							Client.connecting = false;
 							dialog.dispose();
-							JOptionPane.showMessageDialog(null, "There was an error connecting to "+ip+" on port "+port+"", "Error", JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(null, "There was an error connecting to "+ipt+" on port "+portt+"", "Error", JOptionPane.ERROR_MESSAGE);
 						}
 					}
 				}
