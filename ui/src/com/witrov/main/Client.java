@@ -61,36 +61,34 @@ public class Client {
 			@Override
 			public void run()
 			{
-				while(true)
+				while(socket == null || !socket.isConnected())
 				{
 					if(!dialog.isValid() && Client.isConnecting())
 					{
 						System.exit(-1);
+					}
+					else if(!Client.isConnecting())
+					{
+						try {
+							Client.connecting = true;
+							socket = new Socket(ip, port);
+							in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+							out = new PrintWriter(socket.getOutputStream());
+							main.getLog().info("Connected to "+ip);
+							Client.connecting = false;
+							dialog.dispose();
+						} catch (IOException e) {
+							Client.connecting = false;
+							dialog.dispose();
+							JOptionPane.showMessageDialog(null, "There was an error connecting to "+ip+" on port "+port+"", "Error", JOptionPane.ERROR_MESSAGE);
+						}
 					}
 				}
 			}
 		});
 		
 		checkClose.start();
-		
-		
-		try {
-			
-			dialog.setVisible(true);
-			Client.connecting = true;
-			socket = new Socket(ip, port);
-			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			out = new PrintWriter(socket.getOutputStream());
-			dialog.dispose();
-			main.getLog().info("Connected to "+ip);
-			Client.connecting = false;
-			
-		} catch (IOException e) {
-			Client.connecting = false;
-			dialog.dispose();
-			JOptionPane.showMessageDialog(this.main, "There was an error connecting to "+ip+" on port "+port+"", "Error", JOptionPane.ERROR_MESSAGE);
-			
-		}
+		dialog.setVisible(true);
 	}
 	
 	/*
