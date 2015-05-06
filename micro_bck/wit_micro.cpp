@@ -94,6 +94,7 @@ void loop() {
         if (i < OPBUF) {
           op[i] = a;
           i++;
+          server.write(a);
         } else {
           // if you overflow the command buffer, you are disconnected
           server.write("overflow!");
