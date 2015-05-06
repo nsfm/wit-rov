@@ -1,1 +1,0 @@
-This folder contains Arduino sketches. The wit_micro.cpp file is the code we use on our own ROV. Most users might want generic_micro.cpp, which is fairly well adapted to most  projects, having the most useful Arduino functions already tied to certain opcodes. New commands can be added to the main switch case with relative ease, for instance to access a sensor all in one step.
