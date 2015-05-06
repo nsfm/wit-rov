@@ -97,11 +97,11 @@ public class Client {
 	 * Sends an op code to the robot and waits for a response once the response is given
 	 * it parses the response looking for an '!' (success) or a '?' failure
 	 */
-	public boolean sendCode(String code)
+	public String sendCode(String code)
 	{
 		if(!this.isConnected())
 		{
-			return false;
+			return null;
 		}
 			
 		//does some small verification to make sure that
@@ -110,7 +110,7 @@ public class Client {
 		//op codes 2 are taken by /n so we are left with 6
 		if(code.length() > 6)
 		{
-			return false;
+			return null;
 		}
 		
 		
@@ -131,12 +131,12 @@ public class Client {
 		if(message.contains("?"))
 		{
 			main.getLog().error("Could Not execute Command");
-			return false;
+			return message;
 		}
 		else
 		{
 			main.getLog().info("Sent "+code);
-			return true;
+			return null;
 		}
 	}
 	

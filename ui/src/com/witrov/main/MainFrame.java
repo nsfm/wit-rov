@@ -694,6 +694,34 @@ public class MainFrame extends JFrame implements ActionListener{
 		return this.robot;
 	}
 	
+	public double getDepth()
+	{
+		double density = 1030;
+		double gravity = 9.8;
+		double atmosphericPressure = 101325;
+		double pressure = Double.parseDouble(this.robot.sendCode("u"));
+		double depth = (pressure-atmosphericPressure) / ( density * gravity );
+		return depth;
+	}
+	
+	public double getTempeture()
+	{
+		return Double.parseDouble(this.robot.sendCode("i"));
+	}
+	
+	public float getHeading()
+	{
+		return Float.parseFloat(this.robot.sendCode("ch"));
+	}
+	public float getPitch()
+	{
+		return Float.parseFloat(this.robot.sendCode("cp"));
+	}
+	public float getRoll()
+	{
+		return Float.parseFloat(this.robot.sendCode("cr"));
+	}
+	
 	//main function
 	public static void main(String[] args)
 	{

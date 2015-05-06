@@ -23,6 +23,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <Wire.h>
 // Device Libraries
 #include "MS5803_I2C.h" // Depth Sensor
+#include "MPU6050.h"
+#include "SFE_HMC6343.h"
 
 #define DEBUG 0         // debug true or false
 #define OPBUF 6         // the command buffer size
@@ -40,6 +42,8 @@ Servo thruster[SERVO];
 
 // Initialize the depth sensor
 MS5803 depth(ADDRESS_HIGH); // alt 0x77
+SFE_HMC6343 compass; // Declare the sensor object
+MPU6050 nineAxisSensor;
 
 void setup() {
   Ethernet.begin(mac, ip, gateway);
@@ -51,6 +55,14 @@ void setup() {
   // Start depth sensor
   depth.reset();
   depth.begin();
+  
+  nineAxisSensor.initialize();
+  #if DEBUG
+  if(!compass.init())
+  {
+    Serial.println("Sensor Init Failed");
+  }
+  #endif
 }
 
 void loop() {
@@ -173,6 +185,21 @@ void loop() {
         server.print(depth.getTemperature(CELSIUS, ADC_512));
         break;
 
+      case 'c':
+        compass.readHeading();
+        switch(op[1])
+        {     
+          case 'h':
+            server.print((float)compass.heading/10.0); //heading in degrees
+            break;
+          case 'p':
+            server.print((float)compass.pitch/10.0); //pitch in degrees
+            break;
+          case 'r':
+            server.print((float)compass.roll/10.0); //roll in degrees
+            break;
+        }
+        break;
       // end session
       case 'q':
         server.write("goodbye!");
