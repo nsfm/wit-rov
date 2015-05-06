@@ -27,7 +27,7 @@ local pub, and you've found our code helpful, please buy us a round!
 Distributed as-is; no warranty is given.
 ******************************************************************************/
 
-#include <Wire/Wire.h>// Wire library is used for I2C
+#include <Wire.h> // Wire library is used for I2C
 #include "MS5803_I2C.h"
 
 MS5803::MS5803(ms5803_addr address)

@@ -22,7 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <Servo.h>
 #include <Wire.h>
 // Device Libraries
-#include "../lib/MS5803_I2C.h" // Depth Sensor
+#include "MS5803_I2C.h" // Depth Sensor
 
 #define DEBUG 0         // debug true or false
 #define OPBUF 6         // the command buffer size
@@ -39,19 +39,8 @@ EthernetServer server(23);                           // Telnet is on port 23, co
 Servo thruster[SERVO];
 
 // Initialize the depth sensor
-MS5803 depth(ADDRESS_HIGH); // alt ADDRESS_LOW
+MS5803 depth(ADDRESS_HIGH); // alt 0x77
 
-
-
-int char2int(char val) {
-  return (val-'0');
-}
-int char2int(char val, char val2) {
-  return ((val-'0')*10)+(val2-'0');
-}
-int char2int(char val, char val2, char val3) {
-  return ((val-'0')*100)+((val2-'0')*10)+(val3-'0');
-}
 void setup() {
   Ethernet.begin(mac, ip, gateway);
   server.begin();
@@ -105,7 +94,6 @@ void loop() {
         if (i < OPBUF) {
           op[i] = a;
           i++;
-          server.write(a);
         } else {
           // if you overflow the command buffer, you are disconnected
           server.write("overflow!");
@@ -207,7 +195,7 @@ void loop() {
   // TODO: Thruster comms timeout
 }
 
-/* convert a few characters to ints
+// convert a few characters to ints
 int char2int(char val) {
   return (val-'0');
 }
@@ -216,4 +204,4 @@ int char2int(char val, char val2) {
 }
 int char2int(char val, char val2, char val3) {
   return ((val-'0')*100)+((val2-'0')*10)+(val3-'0');
-}*/
+}
