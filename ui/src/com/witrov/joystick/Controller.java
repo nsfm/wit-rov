@@ -37,6 +37,7 @@ public abstract class Controller extends Thread implements ControllerInterface, 
     	try
     	{
     		String winBaseFile = System.getProperty("user.home")+"\\AppData\\Roaming\\WIT_ROV\\lib\\";
+                String linuxBaseFile = System.getProperty("user.home")+"/WIT_ROV/lib/";
 	    	if(System.getProperty("os.name").toLowerCase().contains("windows"))
 	    	{
 	    		if(System.getProperty("os.arch").contains("64"))
@@ -52,11 +53,11 @@ public abstract class Controller extends Thread implements ControllerInterface, 
 	    	{
 	    		if(System.getProperty("os.arch").contains("64"))
 	    		{
-	    			System.loadLibrary("libhidapijni64");
+	    			System.load(linuxBaseFile + "libhidapijni64.so");
 	    		}
 	    		else
 	    		{
-	    			System.loadLibrary("libhidapijni32");
+	    			System.load(linuxBaseFile + "libhidapijni32.so");
 	    		}
 	    	}
 	    	else

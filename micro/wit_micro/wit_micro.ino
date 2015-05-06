@@ -20,12 +20,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <SPI.h>
 #include <Ethernet.h>
 #include <Servo.h>
+#include <Wire.h>
+// Device Libraries
+#include "MS5803_I2C.h" // Depth Sensor
 
-#define DEBUG 0    // debug true or false
-#define OPBUF 6    // the command buffer size
-#define BUILD 2    // the build number
-#define TIMER 3000 // ticks until timeout
-#define SERVO 6    // number of thrusters (servos) attached to machine
+#define DEBUG 0         // debug true or false
+#define OPBUF 6         // the command buffer size
+#define TIMER 3000      // ticks until timeout
+#define SERVO 6         // number of thrusters (servos) attached to machine
 
 // Networking Configuration
 byte mac[] = { 0x00, 0xde, 0xad, 0xfa, 0xca, 0xde }; // MAC must be unique on this network
@@ -36,12 +38,19 @@ EthernetServer server(23);                           // Telnet is on port 23, co
 // Get thrusters ready ahead of time
 Servo thruster[SERVO];
 
+// Initialize the depth sensor
+MS5803 depth(ADDRESS_HIGH); // alt 0x77
+
 void setup() {
   Ethernet.begin(mac, ip, gateway);
   server.begin();
   #if DEBUG
     Serial.begin(115200);
   #endif
+
+  // Start depth sensor
+  depth.reset();
+  depth.begin();
 }
 
 void loop() {
@@ -154,21 +163,22 @@ void loop() {
         server.write("!");
         break;
       
-      // version
-      case 'v':
-        server.print(BUILD);
+      // read pressure
+      case 'u':
+        server.print(depth.getPressure(ADC_2048));
         break;
       
+      // read temperature (external)
+      case 'i':
+        server.print(depth.getTemperature(CELSIUS, ADC_512));
+        break;
+
       // end session
       case 'q':
         server.write("goodbye!");
         server.write('\n');
         client.flush();
         client.stop();
-        break;
-        
-      case '\r':
-        server.write("windows?");
         break;
         
       default:
@@ -179,9 +189,10 @@ void loop() {
     server.write('\n');
     
   }
-  
+  // TODO: Idle block 
   // this part of the loop is active only when no clients are connected
   // what should we do while we're idling and waiting for commands?
+  // TODO: Thruster comms timeout
 }
 
 // convert a few characters to ints

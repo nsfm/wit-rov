@@ -7,18 +7,31 @@ import java.util.ArrayList;
 public class DatabaseHandle {
 	
 	private String dbName = "wit_rov.db";
-	private String dbPath = System.getProperty("user.home")+"\\AppData\\Roaming\\WIT_ROV\\DB";
+        private String dbPath;
 	private Connection c;
 	public DatabaseHandle()
 	{
-
+	    
+            String OS = System.getProperty("os.name").toLowerCase();
+            if (OS.indexOf("windows") >= 0) 
+            {
+                 // Windows
+	         dbPath = System.getProperty("user.home")+"\\AppData\\Roaming\\WIT_ROV\\DB\\";
+            } 
+            else
+            {
+                 // Linux
+                 //Mac
+                 dbPath = System.getProperty("user.home")+"/WIT_ROV/DB";
+            }
 	    try {
 	      Class.forName("org.sqlite.JDBC");
-
+              
+              System.out.println("DBPATH: "+dbPath);
 	      File f = new File(dbPath);
 	      f.mkdirs();
-	      c = DriverManager.getConnection("jdbc:sqlite:"+f.getAbsolutePath()+"/"+dbName);
-
+	      c = DriverManager.getConnection("jdbc:sqlite:"+f.getAbsolutePath()+dbName);
+            
 	      Statement stmt = c.createStatement();
 	      String config = "CREATE TABLE IF NOT EXISTS config " +
 	                   "(key VARCHAR(16) PRIMARY KEY     NOT NULL," +
@@ -36,8 +49,8 @@ public class DatabaseHandle {
 	      
 	      stmt.close();
 	    } catch ( Exception e ) {
-	    System.out.println(e.getMessage());
-	      System.exit(0);
+	      	e.printStackTrace();
+		System.exit(0);
 	    }
 	}
 	
