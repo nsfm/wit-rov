@@ -11,8 +11,8 @@ public class StatsPanel extends JPanel {
 	
 	private ThrusterPanel t1, t2, t3, t4;
 	
-	private JLabel depth;
-	private JPanel depthPanel;
+	private JLabel depth, heading, pitch, roll;
+	private JPanel depthPanel, headingPanel;
 	
 	public StatsPanel()
 	{
@@ -29,6 +29,13 @@ public class StatsPanel extends JPanel {
 		depthPanel = new JPanel();
 		depthPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Depth"));
 		
+		headingPanel = new JPanel();
+		headingPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Headings"));
+		
+		heading = new JLabel("Heading: 0");
+		pitch = new JLabel("Pitch: 0");
+		roll = new JLabel("Roll: 0");
+		
 		depth = new JLabel("0");
 		
 		this.setLayout(new GridLayout(0,1));
@@ -37,10 +44,15 @@ public class StatsPanel extends JPanel {
 		this.add(t3);
 		this.add(t4);
 		
+		
+		
 		depthPanel.add(depth);
+		headingPanel.add(heading);
+		headingPanel.add(pitch);
+		headingPanel.add(roll);
 		
 		this.add(depthPanel);
-		
+		this.add(headingPanel);
 		this.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Stats"));
 	}
 	
@@ -69,6 +81,19 @@ public class StatsPanel extends JPanel {
 	public void setDepth(String depth)
 	{
 		this.depth.setText(depth);
+	}
+	
+	public void setHeading(float heading)
+	{
+		this.heading.setText("Heading: "+heading);
+	}
+	public void setPitch(float pitch)
+	{
+		this.pitch.setText("Pitch: "+pitch);
+	}
+	public void setRoll(float roll)
+	{
+		this.roll.setText("Roll: "+roll);
 	}
 
 }

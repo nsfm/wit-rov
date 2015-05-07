@@ -246,3 +246,4 @@ void SFE_HMC6343::clearRawData()
     rawData[i] = 0;
   }
 }
+

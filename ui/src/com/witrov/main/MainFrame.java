@@ -33,7 +33,7 @@ public class MainFrame extends JFrame implements ActionListener{
 	private StatsPanel stats;
 	private JTextField command;					//input fields to get input from the user
 	private LogPanel log;						//Panel to print out log information
-	private JTabbedPane tabs;					//Tab pane to handle tabbed content
+	private JTabbedPane tabs1, tabs2;					//Tab pane to handle tabbed content
 	private ControllerPanel[] controllerPanels;		//panel for choosing and managing joysticks
 	private Controller[] joysticks;					//Object to handle joystick 1 input
 	private ConfigPanel configPanel;
@@ -50,7 +50,7 @@ public class MainFrame extends JFrame implements ActionListener{
 	
 	private int[] thrusterConfig;					//0 = front left, 1 = front right, 2 = back left, 3 = back right
 	
-	
+	private DisplayPanel disp;
 	/*
 	 * Constructor
 	 * Creates the Client object and establishes
@@ -134,16 +134,23 @@ public class MainFrame extends JFrame implements ActionListener{
 		main.setLayout(new GridLayout(0,1));
 		main.add(controllers);
 		main.add(stats);
-		main.add(buttons);
 		
 	
-		tabs = new JTabbedPane();
+		tabs1 = new JTabbedPane();
 		
-		tabs.addTab("Main",null, main, "Main display");
+		tabs1.addTab("Main",null, main, "Main display");
 		//tabs.addTab("Controllers", null, controllerPanel, "Controller Configurations");		
-		tabs.addTab("Config", null, configPanel, "Main Configurations");
-		this.add(tabs, BorderLayout.WEST);
-		this.add(log, BorderLayout.EAST);
+		tabs1.addTab("Config", null, configPanel, "Main Configurations");
+		tabs1.addTab("Extras", null, buttons, "Extras");
+		disp = new DisplayPanel(750, 1000);
+		
+		tabs2 = new JTabbedPane();
+		
+		tabs2.addTab("Log", null, log, "Log");
+		tabs2.addTab("Display", null, disp, "Display");
+	
+		this.add(tabs1, BorderLayout.WEST);
+		this.add(tabs2, BorderLayout.EAST);
 		
 		//Packs the frame meaning it shrinks the window
 		//to the smallest size needed for the components it holds
@@ -711,15 +718,40 @@ public class MainFrame extends JFrame implements ActionListener{
 	
 	public float getHeading()
 	{
-		return Float.parseFloat(this.robot.sendCode("ch"));
+		try
+		{
+			float heading = Float.parseFloat(this.robot.sendCode("ch"));
+			this.stats.setHeading(heading);
+			return heading;
+		}
+		catch(Exception e)
+		{}
+		return -1;
 	}
 	public float getPitch()
 	{
-		return Float.parseFloat(this.robot.sendCode("cp"));
-	}
+		try
+		{
+			float pitch = Float.parseFloat(this.robot.sendCode("cp"));
+			this.stats.setPitch(pitch);
+			return pitch;
+		}
+		catch(Exception e)
+		{}
+		return -1;
+		}
 	public float getRoll()
 	{
-		return Float.parseFloat(this.robot.sendCode("cr"));
+		try
+		{
+			float roll = Float.parseFloat(this.robot.sendCode("cr"));
+			this.stats.setRoll(roll);
+			this.disp.setAngle((int)roll);
+			return roll;
+		}
+		catch(Exception e)
+		{}
+		return -1;
 	}
 	
 	//main function
@@ -750,16 +782,20 @@ public class MainFrame extends JFrame implements ActionListener{
 		{
 			try
 			{
-				m.handleMainMovement(1);
+				/*m.handleMainMovement(1);
 				m.checkDepth(1);
-				m.hanldeCameraChange(1);
+				m.hanldeCameraChange(1);*/
+				//m.getHeading();
+				//m.getPitch();
+				//m.getRoll();
+				m.repaint();
 			}
 			catch(Exception e)
 			{
 				e.printStackTrace();
 			}
 			try {
-				Thread.sleep(10);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

@@ -25,6 +25,7 @@ public class Client {
 	private boolean debug;			//boolean to set whether to print debug data or not
 	private MainFrame main;
 	private static boolean connecting = false;
+	private boolean shownError = false;
 	
 	/*
 	 * Creates connection to ip on given port and opens a line of 
@@ -67,7 +68,7 @@ public class Client {
 					{
 						System.exit(-1);
 					}
-					else if(!Client.isConnecting())
+					else if(!Client.isConnecting() && !shownError)
 					{
 						try {
 							Client.connecting = true;
@@ -79,6 +80,7 @@ public class Client {
 							dialog.dispose();
 						} catch (IOException e) {
 							Client.connecting = false;
+							shownError = true;
 							dialog.dispose();
 							JOptionPane.showMessageDialog(null, "There was an error connecting to "+ip+" on port "+port+"", "Error", JOptionPane.ERROR_MESSAGE);
 						}
@@ -131,12 +133,12 @@ public class Client {
 		if(message.contains("?"))
 		{
 			main.getLog().error("Could Not execute Command");
-			return message;
+			return null;
 		}
 		else
 		{
-			main.getLog().info("Sent "+code);
-			return null;
+			//main.getLog().info("Sent "+code);
+			return message;
 		}
 	}
 	

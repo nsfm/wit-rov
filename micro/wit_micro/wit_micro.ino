@@ -232,3 +232,4 @@ int char2int(char val, char val2) {
 int char2int(char val, char val2, char val3) {
   return ((val-'0')*100)+((val2-'0')*10)+(val3-'0');
 }
+
