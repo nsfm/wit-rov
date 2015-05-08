@@ -67,11 +67,11 @@ public class DisplayPanel extends JPanel{
 		g.setColor(Color.BLACK);
 		
 		//Draw the Horizonometer
-		int x1 = 0, y1 = this.getSize().height/2 + this.horizantalAngle;
-		int x2 = this.getSize().width, y2 = this.getSize().height/2 - this.horizantalAngle;
+		int x1 = 0, y1 = this.getSize().height/2 + (this.horizantalAngle*3);
+		int x2 = this.getSize().width, y2 = this.getSize().height/2 - (this.horizantalAngle*3);
 		Random r = new Random();
 		
-		this.horizantalAngle = r.nextInt(200)-1;
+		//this.horizantalAngle = r.nextInt(200)-1;
 		this.depth = r.nextInt(this.numberOfTicks)-1;
 	
 		int xDiff = x2 - x1;

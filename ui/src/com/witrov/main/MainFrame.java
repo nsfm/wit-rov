@@ -301,10 +301,10 @@ public class MainFrame extends JFrame implements ActionListener{
 				// t3               t4
 				
 				//added in ( 1 * var) for spacing 
-				int thruster1V = this.checkValue((-1 * y) + ( 1 * x) + (-1 * r));
-				int thruster2V = this.checkValue(( 1 * y) + ( 1 * x) + ( 1 * r));
-				int thruster3V = this.checkValue((-1 * y) + ( 1 * x) + (-1 * r));
-				int thruster4V = this.checkValue((-1 * y) + (-1 * x) + ( 1 * r));
+				int thruster1V = this.checkValue(( 1 * y) + ( 1 * x) + (-1 * r));
+				int thruster2V = this.checkValue(( 1 * y) + (-1 * x) + ( 1 * r));
+				int thruster3V = this.checkValue((-1 * y) + ( 1 * x) + ( 1 * r));
+				int thruster4V = this.checkValue(( 1 * y) + ( 1 * x) + ( 1 * r));
 				
 				this.stats.getThruster(this.thrusterConfig[0]).setVelocity(thruster1V);
 				this.stats.getThruster(this.thrusterConfig[1]).setVelocity(thruster2V);
@@ -312,9 +312,9 @@ public class MainFrame extends JFrame implements ActionListener{
 				this.stats.getThruster(this.thrusterConfig[3]).setVelocity(thruster4V);
 				
 				this.robot.sendCode("t0"+(400 + thruster1V));
-				this.robot.sendCode("t1"+(400 + thruster1V));
-				this.robot.sendCode("t2"+(400 + thruster1V));
-				this.robot.sendCode("t3"+(400 + thruster1V));
+				this.robot.sendCode("t1"+(400 + thruster2V));
+				this.robot.sendCode("t2"+(400 + thruster3V));
+				this.robot.sendCode("t3"+(400 + thruster4V));
 				
 			}
 		}
@@ -732,7 +732,7 @@ public class MainFrame extends JFrame implements ActionListener{
 	{
 		try
 		{
-			float pitch = Float.parseFloat(this.robot.sendCode("cp"));
+			float pitch = Float.parseFloat(this.robot.sendCode("cr"));
 			this.stats.setPitch(pitch);
 			return pitch;
 		}
@@ -744,7 +744,7 @@ public class MainFrame extends JFrame implements ActionListener{
 	{
 		try
 		{
-			float roll = Float.parseFloat(this.robot.sendCode("cr"));
+			float roll = Float.parseFloat(this.robot.sendCode("cp"));
 			this.stats.setRoll(roll);
 			this.disp.setAngle((int)roll);
 			return roll;
@@ -782,12 +782,13 @@ public class MainFrame extends JFrame implements ActionListener{
 		{
 			try
 			{
-				/*m.handleMainMovement(1);
-				m.checkDepth(1);
-				m.hanldeCameraChange(1);*/
-				//m.getHeading();
-				//m.getPitch();
-				//m.getRoll();
+				m.handleMainMovement(1);
+				//m.checkDepth(1);
+				m.hanldeCameraChange(1);
+				//System.out.println(m.getDepth());
+				m.getHeading();
+				m.getPitch();
+				m.getRoll();
 				m.repaint();
 			}
 			catch(Exception e)

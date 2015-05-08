@@ -117,6 +117,7 @@ public class Client {
 			return null;
 		}
 		
+		this.main.getLog().debug("CODE: "+code);
 		
 		//queues the code to be sent
 		out.println(code);
@@ -177,7 +178,7 @@ public class Client {
 
 	public void setThruster(ArduinoPinConfig pin) {
 		
-		this.sendCode("s"+pin.pinNumberToString()+""+pin.getValue());
+		this.sendCode("s"+pin.pinNumberToString()+""+(pin.getValue()-1));
 		
 	}
 	
