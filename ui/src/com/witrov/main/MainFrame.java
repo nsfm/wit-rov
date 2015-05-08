@@ -51,6 +51,8 @@ public class MainFrame extends JFrame implements ActionListener{
 	private int[] thrusterConfig;					//0 = front left, 1 = front right, 2 = back left, 3 = back right
 	
 	private DisplayPanel disp;
+	
+	private HelpPanel help;
 	/*
 	 * Constructor
 	 * Creates the Client object and establishes
@@ -142,13 +144,16 @@ public class MainFrame extends JFrame implements ActionListener{
 		//tabs.addTab("Controllers", null, controllerPanel, "Controller Configurations");		
 		tabs1.addTab("Config", null, configPanel, "Main Configurations");
 		tabs1.addTab("Extras", null, buttons, "Extras");
+		
 		disp = new DisplayPanel(750, 1000);
+		
+		help = new HelpPanel();
 		
 		tabs2 = new JTabbedPane();
 		
 		tabs2.addTab("Log", null, log, "Log");
 		tabs2.addTab("Display", null, disp, "Display");
-	
+		tabs2.addTab("Help", null, help, "Help");
 		this.add(tabs1, BorderLayout.WEST);
 		this.add(tabs2, BorderLayout.EAST);
 		
@@ -254,6 +259,8 @@ public class MainFrame extends JFrame implements ActionListener{
 		int x = this.joysticks[joystickNumber-1].getJoystick1X();
 		int y = this.joysticks[joystickNumber-1].getJoystick1Y();
 		
+		int z = this.joysticks[joystickNumber-1].getMisc()[0];
+		
 		int r = this.joysticks[joystickNumber-1].getJoystick2X();
 		
 		//add -128 to the value so we get a scale of:
@@ -279,7 +286,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		x = this.checkThreshold(x, joystickNumber);
 		y = this.checkThreshold(y, joystickNumber);
 		r = this.checkThreshold(r, joystickNumber);
-		
+		z = this.checkThreshold(z, joystickNumber);
 		
 		//check if there was a change
 		if(this.lastJoystick[joystickNumber-1] != null && (x != this.lastJoystick[joystickNumber-1][0] || y != this.lastJoystick[joystickNumber-1][1] || r != this.lastJoystick[joystickNumber-1][2]))
@@ -317,6 +324,24 @@ public class MainFrame extends JFrame implements ActionListener{
 				this.robot.sendCode("t3"+(400 + thruster4V));
 				
 			}
+			else
+			{
+				this.robot.sendCode("t0"+(400));
+				this.robot.sendCode("t1"+(400));
+				this.robot.sendCode("t2"+(400));
+				this.robot.sendCode("t3"+(400));
+			}
+		}
+		
+		if(this.lastMisc[joystickNumber - 1] != null && z != this.lastMisc[joystickNumber -1][0])
+		{
+			this.robot.sendCode("t4"+(400 + z));
+			this.robot.sendCode("t5" + (400 - z));
+		}
+		else
+		{
+			this.robot.sendCode("t4"+(400));
+			this.robot.sendCode("t5"+(400));
 		}
 	}
 
@@ -531,6 +556,11 @@ public class MainFrame extends JFrame implements ActionListener{
 			//set the last button state to the current state
 			this.lastButton[joystickNumber-1][i] = buttons[i];
 		}
+	}
+	
+	public void handleUpAndDown(int joystickNumber)
+	{
+		
 	}
 	
 	//handle the depth change

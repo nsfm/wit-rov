@@ -8,6 +8,9 @@ InstallDir $APPDATA
 # default section start
 Section
  
+SetOutPath $INSTDIR\${COMPANYNAME}
+File help.png
+ 
 # define output path
 SetOutPath $INSTDIR\${COMPANYNAME}\lib
 File lib\hidapijni64.dll
@@ -48,6 +51,7 @@ Delete $INSTDIR\UNINSTALL.exe
 # now delete installed file
 Delete $INSTDIR\lib\hidapijni32.dll
 Delete $INSTDIR\lib\hidapijni64.dll
+Delete $INSTDIR\help.png
 RMDir "$INSTDIR\lib"
 Delete $INSTDIR\DB\wit_rov.db
 RMDir "$INSTDIR\DB"

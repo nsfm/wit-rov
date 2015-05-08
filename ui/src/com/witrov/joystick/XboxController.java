@@ -90,24 +90,25 @@ public class XboxController extends Controller {
 	                super.processButtonSet(buttonSetOne, 7, 0, 128, buttons);
 	                
 	                
+	                this.misc[0] = 128 - this.checkDeviceValue(buf[9]);
 	                //process dpad index 11
 	                this.dpad = (this.checkDeviceValue(buf[11]) - 64) / 4;
 	                
 	                
-	               /* for(int i = 0; i < n; i++)
-	                {
-	                	int v = this.checkDeviceValue(buf[i]);
-	                	if(v < 10)
-	                	{
-	                		System.err.print("0");
-	                	}
-	                	if(v < 100)
-	                	{
-	                		System.err.print("0");
-	                	}
-	                	System.err.print(v+ " ");
-	                }
-	                System.err.println("");*/
+//	                for(int i = 0; i < n; i++)
+//	                {
+//	                	int v = this.checkDeviceValue(buf[i]);
+//	                	if(v < 10)
+//	                	{
+//	                		System.err.print("0");
+//	                	}
+//	                	if(v < 100)
+//	                	{
+//	                		System.err.print("0");
+//	                	}
+//	                	System.err.print(v+ " ");
+//	                }
+//	                System.err.println("");
 	                
 	                try
 	                {

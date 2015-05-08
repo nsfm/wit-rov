@@ -8,11 +8,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.SwingConstants;
 import javax.swing.border.BevelBorder;
@@ -30,6 +32,8 @@ public class LogPanel extends JPanel implements ActionListener{
 	private JScrollPane logScroll;
 	private int appendStyle = APPEND_BOTTOM;
 	private int logCount = 0;
+	private JTextField verbose;
+	private JLabel vLabel;
 	
 	public LogPanel(int height, int width)
 	{
@@ -60,11 +64,20 @@ public class LogPanel extends JPanel implements ActionListener{
 		clear = new JButton("Clear Log");
 		clear.addActionListener(this);
 		
+		verbose = new JTextField(5);
+		verbose.setText("2");
+		vLabel = new JLabel("Verbosity: ");
+		
+		JPanel stuff = new JPanel();
+		stuff.add(clear);
+		stuff.add(vLabel);
+		stuff.add(verbose);
+		
 		BorderLayout layout = new BorderLayout();
 		
 		this.setLayout(layout);
 
-		this.add(clear, BorderLayout.NORTH);
+		this.add(stuff, BorderLayout.NORTH);
 		this.add(logScroll);
 		
 		this.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Log"));
@@ -77,12 +90,18 @@ public class LogPanel extends JPanel implements ActionListener{
 
 	public void debug(String message)
 	{
-		this.append("DEBUG", message);
+		if(Integer.parseInt(verbose.getText()) >= 3)
+		{
+			this.append("DEBUG", message);
+		}
 	}
 	
 	public void info(String message)
 	{
-		this.append("INFO", message);
+		if(Integer.parseInt(verbose.getText()) >= 2)
+		{
+			this.append("INFO", message);
+		}
 	}
 	
 	private void append(String type, String message)
