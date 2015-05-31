@@ -72,7 +72,7 @@ public class DisplayPanel extends JPanel{
 		Random r = new Random();
 		
 		//this.horizantalAngle = r.nextInt(200)-1;
-		this.depth = r.nextInt(this.numberOfTicks)-1;
+		//this.depth = r.nextInt(this.numberOfTicks)-1;
 	
 		int xDiff = x2 - x1;
 		int yDiff = y2 - y1;

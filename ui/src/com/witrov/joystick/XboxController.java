@@ -26,7 +26,7 @@ public class XboxController extends Controller {
 	
 	private int dpad;			//stores the value of the dpad
 	
-	private int numberOfButtons = 8;
+	private int numberOfButtons = 10;
 	private int numberOfMisc = 6;
 	
 	private boolean isRunning = true;
@@ -88,13 +88,70 @@ public class XboxController extends Controller {
 	                //index 10-a, b, x, y, start, select, rb, lb
 	                int buttonSetOne = buf[10];
 	                super.processButtonSet(buttonSetOne, 7, 0, 128, buttons);
-	                
-	                
 	                this.misc[0] = 128 - this.checkDeviceValue(buf[9]);
 	                //process dpad index 11
-	                this.dpad = (this.checkDeviceValue(buf[11]) - 64) / 4;
+	                this.dpad = 0;
 	                
-	                
+	                //buff 11 is a weird case
+	                int buf11 = this.checkDeviceValue(buf[11]) -64;
+	                if(buf11 - 32 >= 0)
+	                {
+	                	this.dpad = buf11/4;
+	                	buf11 -= 32;
+	                }
+	                if(buf11 - 28 >= 0)
+	                {
+	                	this.dpad = buf11/4;
+	                	buf11 -= 28;
+	                }
+	                if(buf11 - 24 >= 0)
+	                {
+	                	this.dpad = buf11/4;
+	                	buf11 -= 24;
+	                }
+	                if(buf11 - 20 >= 0)
+	                {
+	                	this.dpad = buf11/4;
+	                	buf11 -= 20;
+	                }
+	                if(buf11 - 16 >= 0)
+	                {
+	                	this.dpad = buf11/4;
+	                	buf11 -= 16;
+	                }
+	                if(buf11 - 12 >= 0)
+	                {
+	                	this.dpad = buf11/4;
+	                	buf11 -= 12;
+	                }
+	                if(buf11 - 8 >= 0)
+	                {
+	                	this.dpad = buf11/4;
+	                	buf11 -= 8;
+	                }
+	                if(buf11 - 4 >= 0)
+	                {
+	                	this.dpad = buf11/4;
+	                	buf11 -= 4;
+	                }
+	                if(buf11 - 2 >= 0)
+	                {
+	                	this.buttons[8] = true;
+	                	buf11 -= 2;
+	                }
+	                else
+	                {
+	                	this.buttons[8] = false;
+	                }
+	                if(buf11 - 1 >= 0)
+	                {
+	                	this.buttons[9] = true;
+	                	buf11 -= 1;
+	                }
+	                else
+	                {
+	                	this.buttons[9] = false;
+	                }
 //	                for(int i = 0; i < n; i++)
 //	                {
 //	                	int v = this.checkDeviceValue(buf[i]);

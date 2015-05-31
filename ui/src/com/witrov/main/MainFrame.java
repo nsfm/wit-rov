@@ -53,6 +53,8 @@ public class MainFrame extends JFrame implements ActionListener{
 	private DisplayPanel disp;
 	
 	private HelpPanel help;
+	
+	private int stepsPerSecond;
 	/*
 	 * Constructor
 	 * Creates the Client object and establishes
@@ -263,6 +265,10 @@ public class MainFrame extends JFrame implements ActionListener{
 		
 		int r = this.joysticks[joystickNumber-1].getJoystick2X();
 		
+		boolean xyzMult = this.joysticks[joystickNumber-1].getButtons()[9];
+		boolean rMult = this.joysticks[joystickNumber-1].getButtons()[8];
+		
+		
 		//add -128 to the value so we get a scale of:
 		//               128
 		//                |
@@ -288,6 +294,19 @@ public class MainFrame extends JFrame implements ActionListener{
 		r = this.checkThreshold(r, joystickNumber);
 		z = this.checkThreshold(z, joystickNumber);
 		
+		//Check multiplier
+		if(xyzMult)
+		{
+			x *= 2;
+			y *= 2;
+			z *= 2;
+		}
+		
+		if(rMult)
+		{
+			r *= 2;
+		}
+		
 		//check if there was a change
 		if(this.lastJoystick[joystickNumber-1] != null && (x != this.lastJoystick[joystickNumber-1][0] || y != this.lastJoystick[joystickNumber-1][1] || r != this.lastJoystick[joystickNumber-1][2]))
 		{	
@@ -308,10 +327,10 @@ public class MainFrame extends JFrame implements ActionListener{
 				// t3               t4
 				
 				//added in ( 1 * var) for spacing 
-				int thruster1V = this.checkValue(( 1 * y) + ( 1 * x) + (-1 * r));
-				int thruster2V = this.checkValue(( 1 * y) + (-1 * x) + ( 1 * r));
-				int thruster3V = this.checkValue((-1 * y) + ( 1 * x) + ( 1 * r));
-				int thruster4V = this.checkValue(( 1 * y) + ( 1 * x) + ( 1 * r));
+				int thruster1V = this.checkValue(( 1 * y) + ( 1 * x) + ( 1 * r));
+				int thruster2V = this.checkValue(( 1 * y) + (-1 * x) + (-1 * r));
+				int thruster3V = this.checkValue((-1 * y) + ( 1 * x) + (-1 * r));
+				int thruster4V = this.checkValue(( 1 * y) + ( 1 * x) + (-1 * r));
 				
 				this.stats.getThruster(this.thrusterConfig[0]).setVelocity(thruster1V);
 				this.stats.getThruster(this.thrusterConfig[1]).setVelocity(thruster2V);
@@ -348,13 +367,13 @@ public class MainFrame extends JFrame implements ActionListener{
 	//Keep the value between -127-127
 	private int checkValue(int x)
 	{
-		if(x >= 127)
+		if(x >= 400)
 		{
-			return 127;
+			return 400;
 		}
-		else if( x <= -127)
+		else if( x <= -400)
 		{
-			return -127;
+			return -400;
 		}
 		else 
 		{
@@ -620,6 +639,7 @@ public class MainFrame extends JFrame implements ActionListener{
 			this.depth = (int) newDepth;
 			this.stats.setDepth(this.depth);
 		}
+		
 	}
 	
 	//handles changing the camera and forward direction
@@ -738,6 +758,7 @@ public class MainFrame extends JFrame implements ActionListener{
 		double atmosphericPressure = 101325;
 		double pressure = Double.parseDouble(this.robot.sendCode("u"));
 		double depth = (pressure-atmosphericPressure) / ( density * gravity );
+		this.disp.setDepth((int) pressure);
 		return depth;
 	}
 	
@@ -784,6 +805,79 @@ public class MainFrame extends JFrame implements ActionListener{
 		return -1;
 	}
 	
+	public void handleClaw(int joystickNumber)
+	{
+		if(!this.checkJoyStick(joystickNumber))
+		{
+			return;
+		}
+
+		int upDown = this.joysticks[joystickNumber-1].getJoystick1Y();
+		int squeeze = this.joysticks[joystickNumber-1].getMisc()[0];
+		int rotate = this.joysticks[joystickNumber-1].getJoystick2X();
+		
+		boolean udMult = this.joysticks[joystickNumber-1].getButtons()[9];
+		boolean rMult = this.joysticks[joystickNumber-1].getButtons()[8];
+		
+		//add -128 to the value so we get a scale of:
+		//               128
+		//                |
+		//                |
+		//                |
+		// -128 ----------0---------- 128
+		//                |
+		//                |
+		//                |
+		//              -128
+		
+		upDown += -128;
+		rotate += -128;
+		
+		//We multiple the y axis by -1 just to get a more 
+		//familiar system.  i.e (forward is positive backward is negative)
+		upDown *= -1;
+		
+		//Check thresholds
+		rotate = this.checkThreshold(rotate, joystickNumber);
+		upDown = this.checkThreshold(upDown, joystickNumber);
+		squeeze = this.checkThreshold(squeeze, joystickNumber);
+		
+		//check if there was a change
+		if(this.lastJoystick[joystickNumber-1] != null && (rotate != this.lastJoystick[joystickNumber-1][0] || upDown != this.lastJoystick[joystickNumber-1][1] || squeeze != this.lastJoystick[joystickNumber-1][2]))
+		{	
+			//remember current values
+			this.lastJoystick[joystickNumber-1][0] = rotate;
+			this.lastJoystick[joystickNumber-1][1] = upDown;
+			this.lastJoystick[joystickNumber-1][2] = squeeze;
+			
+			//Only change if either coordinate is out side of the threshold
+			if(rotate != 0)
+			{
+				this.log.debug("Rotating at: " + rotate);
+			}
+			else
+			{
+				
+			}
+			if(squeeze != 0)
+			{
+				this.log.debug("Squeezing at: " + squeeze);
+			}
+			else
+			{
+				
+			}
+			if(upDown != 0)
+			{
+				this.log.debug("Moving at: " + upDown);
+			}
+			else
+			{
+				
+			}
+		}		
+	}
+	
 	//main function
 	public static void main(String[] args)
 	{
@@ -807,19 +901,24 @@ public class MainFrame extends JFrame implements ActionListener{
 		//Maximize window
 		m.setExtendedState(JFrame.MAXIMIZED_BOTH);
 		
-		
+		int checkDepth = 0;
 		while(true)
 		{
 			try
 			{
 				m.handleMainMovement(1);
-				//m.checkDepth(1);
+//				if(checkDepth % 30 == 0)
+//				{
+//					m.getDepth();
+//				}
+				m.handleClaw(2);
 				m.hanldeCameraChange(1);
 				//System.out.println(m.getDepth());
 				m.getHeading();
 				m.getPitch();
 				m.getRoll();
 				m.repaint();
+				checkDepth++;
 			}
 			catch(Exception e)
 			{
@@ -831,6 +930,7 @@ public class MainFrame extends JFrame implements ActionListener{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			
 			
 		}	
 	}
