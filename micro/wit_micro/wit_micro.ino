@@ -30,6 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define OPBUF 6         // the command buffer size
 #define TIMER 3000      // ticks until timeout
 #define SERVO 6         // number of thrusters (servos) attached to machine
+#define STEPR 3         // number of stepper motors attached to machine
 
 // Networking Configuration
 byte mac[] = { 0x00, 0xde, 0xad, 0xfa, 0xca, 0xde }; // MAC must be unique on this network
@@ -39,6 +40,10 @@ EthernetServer server(23);                           // Telnet is on port 23, co
 
 // Get thrusters ready ahead of time
 Servo thruster[SERVO];
+
+// Prepare our stepper motors
+int dirPin[STEPR];
+int stpPin[STEPR];
 
 // Initialize the depth sensor
 MS5803 depth(ADDRESS_HIGH); // alt 0x77
@@ -175,6 +180,28 @@ void loop() {
         server.write("!");
         break;
       
+      // attach stepper
+      case 'g':
+        dirPin[char2int(op[5])] = char2int(op[1],op[2]);
+        stpPin[char2int(op[5])] = char2int(op[3],op[4]);
+        pinMode(char2int(op[1],op[2], OUTPUT);
+        pinMode(char2int(op[3],op[4], OUTPUT);
+        server.write("!");
+        break;
+
+      // actuate a stepper
+      case 'h':
+        digitalWrite(dirPin[char2int(op[1])],char2int(op[2]));
+        int c = char2int(op[3],op[4])*10;
+        for (int i=0;i<c;i++) {
+          digitalWrite(stpPin[char2int(op[1])], HIGH);
+          delayMicroseconds(800);
+          digitalWrite(stpPin[char2int(op[1])], LOW);
+          delayMicroseconds(800);
+        }
+        server.write("!");
+        break;
+
       // read pressure
       case 'u':
         server.print(depth.getPressure(ADC_2048));
@@ -185,6 +212,7 @@ void loop() {
         server.print(depth.getTemperature(CELSIUS, ADC_512));
         break;
 
+      // get compass data
       case 'c':
         compass.readHeading();
         switch(op[1])
@@ -200,6 +228,7 @@ void loop() {
             break;
         }
         break;
+
       // end session
       case 'q':
         server.write("goodbye!");
