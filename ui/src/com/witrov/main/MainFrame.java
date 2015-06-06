@@ -179,6 +179,7 @@ public class MainFrame extends JFrame implements ActionListener{
 			{
 				log.error("The following error occured while executing the opcode:");
 				log.error(er.getMessage());
+				er.printStackTrace();
 			}
 		}
 		else if(e.getSource() == listDevices)
@@ -911,12 +912,12 @@ public class MainFrame extends JFrame implements ActionListener{
 //				{
 //					m.getDepth();
 //				}
-				m.handleClaw(2);
-				m.hanldeCameraChange(1);
+				//m.handleClaw(2);
+				//m.hanldeCameraChange(1);
 				//System.out.println(m.getDepth());
-				m.getHeading();
-				m.getPitch();
-				m.getRoll();
+				//m.getHeading();
+				//m.getPitch();
+				//m.getRoll();
 				m.repaint();
 				checkDepth++;
 			}

@@ -27,7 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "SFE_HMC6343.h"
 
 #define DEBUG 0         // debug true or false
-#define OPBUF 6         // the command buffer size
+#define OPBUF 8         // the command buffer size
 #define TIMER 3000      // ticks until timeout
 #define SERVO 6         // number of thrusters (servos) attached to machine
 #define STEPR 3         // number of stepper motors attached to machine
@@ -184,20 +184,22 @@ void loop() {
       case 'g':
         dirPin[char2int(op[5])] = char2int(op[1],op[2]);
         stpPin[char2int(op[5])] = char2int(op[3],op[4]);
-        pinMode(char2int(op[1],op[2], OUTPUT);
-        pinMode(char2int(op[3],op[4], OUTPUT);
+        pinMode(char2int(op[1],op[2]), OUTPUT);
+        pinMode(char2int(op[3],op[4]), OUTPUT);
         server.write("!");
         break;
 
       // actuate a stepper
-      case 'h':
-        digitalWrite(dirPin[char2int(op[1])],char2int(op[2]));
-        int c = char2int(op[3],op[4])*10;
-        for (int i=0;i<c;i++) {
-          digitalWrite(stpPin[char2int(op[1])], HIGH);
-          delayMicroseconds(800);
-          digitalWrite(stpPin[char2int(op[1])], LOW);
-          delayMicroseconds(800);
+      case 'x':
+        {
+          digitalWrite(dirPin[char2int(op[1])],char2int(op[2]));
+          int c = char2int(op[3],op[4])*10;
+          for (int i=0;i<c;i++) {
+            digitalWrite(stpPin[char2int(op[1])], HIGH);
+            delayMicroseconds(800);
+            digitalWrite(stpPin[char2int(op[1])], LOW);
+            delayMicroseconds(800);
+          }
         }
         server.write("!");
         break;

@@ -133,7 +133,7 @@ public class Client {
 		}
 		//parses the message to see if we received a 
 		//success response
-		if(message.contains("?"))
+		if(message.contains("?") || message.equals("overflow!"))
 		{
 			main.getLog().error("Could Not execute Command");
 			return null;
