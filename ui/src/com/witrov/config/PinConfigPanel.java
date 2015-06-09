@@ -123,153 +123,240 @@ public class PinConfigPanel extends JPanel implements ActionListener, ListSelect
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		DatabaseHandle db = new DatabaseHandle();
 		if(e.getSource() == editPinConfig)
 		{
 			//Get selected pin
 			ArduinoPinConfig pin = pinConfigList.getSelectedValue();
 			
-			//Create the edit panel
-			JPanel ePanel = new JPanel();
-			//add the fields and labels for the pin number and pin mode
-			ePanel.add(new JLabel("Pin Mode:"));
-			//create the modes drop down
-			JComboBox<String> mode = new JComboBox<String>(ArduinoPinConfig.modes);
-			mode.setSelectedIndex(pin.getPinMode());
-			ePanel.add(mode);
+			JPanel editPanel = new JPanel();
+			JTextField pin1 = new JTextField(5);
+			JTextField pin2 = new JTextField(5);
+			JTextField value = new JTextField(5);
+			JComboBox<String> mode = new JComboBox<String>(new String[]{"INPUT", "OUTPUT", "INPUT_PULLUP"});
 			
-			JTextField vField = new JTextField(5);
-			JLabel vLabel = new JLabel("Thruster:");
-			vField.setText("-1");
-			if(pin.getValue() != -1)
+			if(pin.getPinMode() == ArduinoPinConfig.STEPPER)
 			{
-				ePanel.add(vLabel);
-				ePanel.add(vField);
-				vField.setText(pin.getValue()+"");
+				editPanel.add(new JLabel("Dir Pin: "));
+				pin1.setText(""+pin.getPinNumber());
+				editPanel.add(pin1);
+				editPanel.add(new JLabel("Step Pin: "));
+				editPanel.add(pin2);
+				pin2.setText(""+pin.getPinNumberTwo());
+				editPanel.add(new JLabel("Stepper Number: "));
+				value.setText(""+pin.getValue());
+				editPanel.add(value);
+			}
+			else if(pin.getPinMode() == ArduinoPinConfig.THRUSTER)
+			{
+				editPanel.add(new JLabel("Pin: "));
+				pin1.setText(""+pin.getPinNumber());
+				editPanel.add(pin1);
+				editPanel.add(new JLabel("Thruster Number: "));
+				value.setText(""+pin.getValue());
+				editPanel.add(value);
+			}
+			else
+			{
+				editPanel.add(new JLabel("Pin Mode: "));
+				editPanel.add(mode);
+				mode.setSelectedIndex(pin.getPinMode());
 			}
 			
-			//display the pop up and get the result of the button clicked
-			int result = JOptionPane.showConfirmDialog(null, ePanel, "Edit Pin "+pin.getPinNumber()+" Config", JOptionPane.OK_CANCEL_OPTION);
+			int result = JOptionPane.showConfirmDialog(null, editPanel, "Edit Pin Config", JOptionPane.OK_OPTION);
 			
-			//if they clicked ok
 			if(result == JOptionPane.OK_OPTION)
 			{
-				//create a new pin to hold the new data
-				//we do this in case the database fails we dont
-				//need a new query to revert the old pin in the list
-				ArduinoPinConfig newPin = new ArduinoPinConfig();
-				newPin.setPinNumber(pin.getPinNumber());
-				newPin.setPinMode(mode.getSelectedIndex());
+				ArduinoPinConfig temp = new ArduinoPinConfig(pin.getPinNumber(), pin.getPinNumberTwo(), pin.getPinMode(), pin.getValue());
+							
 				
-				if(newPin.getPinMode() == 3)
+				if(pin.getPinMode() == ArduinoPinConfig.STEPPER)
 				{
-					String value = vField.getText();
-					if(pin.getPinMode() != 3)
+					if(temp.getPinNumber() != Integer.parseInt(pin1.getText()) && db.findPinBy("pinNumber", Integer.parseInt(pin1.getText())) == null)
 					{
-						value = JOptionPane.showInputDialog(null, "What thruster is this for?");
+						pin.setPinNumber(Integer.parseInt(pin1.getText()));
 					}
-					newPin.setValue(Integer.parseInt(value));
+					else if(temp.getPinNumber() != Integer.parseInt(pin1.getText()))
+					{
+						this.main.getLog().error("Pin '"+pin1.getText()+"' already has a config value");
+						return;
+					}
+					if(temp.getPinNumberTwo() != Integer.parseInt(pin2.getText()) && db.findPinBy("pinNumber", Integer.parseInt(pin2.getText())) == null)
+					{
+						pin.setPinNumberTwo(Integer.parseInt(pin2.getText()));
+					}
+					else if(temp.getPinNumberTwo() != Integer.parseInt(pin2.getText()))
+					{
+						this.main.getLog().error("Pin '"+pin2.getText()+"' already has a config value");
+						return;
+					}
+					
+					if(temp.getValue() != Integer.parseInt(value.getText()))
+					{
+						pin.setValue(Integer.parseInt(value.getText()));
+					}
+					
+					if(db.updatePinConfig(pin))
+					{
+						this.main.getLog().info("Stepper config updated.");
+						this.main.getRobot().setStepper(pin);
+					}
+				}
+				else if(pin.getPinMode() == ArduinoPinConfig.THRUSTER)
+				{
+					if(temp.getPinNumber() != Integer.parseInt(pin1.getText()) && db.findPinBy("pinNumber", Integer.parseInt(pin1.getText())) == null)
+					{
+						pin.setPinNumber(Integer.parseInt(pin1.getText()));
+					}
+					else if(temp.getPinNumber() != Integer.parseInt(pin1.getText()))
+					{
+						this.main.getLog().error("Pin '"+pin1.getText()+"' already has a config value");
+						return;
+					}
+					if(temp.getValue() != Integer.parseInt(value.getText()))
+					{
+						pin.setValue(Integer.parseInt(value.getText()));
+					}
+					
+					if(db.updatePinConfig(pin))
+					{
+						this.main.getLog().info("Thruster config updated.");
+						this.main.getRobot().setThruster(pin);
+					}
 				}
 				else
 				{
-					newPin.setValue(-1);
-				}
-				DatabaseHandle db = new DatabaseHandle();
-				
-				//update the pin data in the database
-				if(db.updatePinConfig(newPin))
-				{
-					//copy new mode to current pin in the list
-					pin.setPinMode(newPin.getPinMode());
-					pin.setValue(newPin.getValue());
-					if(pin.getPinMode() == 3)
+					if(temp.getPinMode() != mode.getSelectedIndex())
 					{
-						this.main.getRobot().setThruster(pin);
+						pin.setPinMode(mode.getSelectedIndex());
 					}
-					else
+					
+					if(db.updatePinConfig(pin))
 					{
-						//set the pin mode on the robot
+						this.main.getLog().info("Pin config updated.");
 						this.main.getRobot().setPinMode(pin);
 					}
-					this.main.getLog().info("Pin "+pin.getPinNumber()+" set to " + pin.pinModeToString());
+					
 				}
-				//update failed
-				else 
-				{
-					this.main.getLog().error("There was an error updating pin "+ pin.getPinNumber());
-				}
-				//close the connection
-				db.closeConnection();
-				this.pinConfigList.repaint();
 			}
+			this.pinConfigList.repaint();
+			
 		}
 		else if(e.getSource() == addPinConfig)
 		{
-			//Create the add pin panel
-			JPanel ePanel = new JPanel();
-			//create the labels and fields for the pin number and modes
-			ePanel.add(new JLabel("Pin Number:"));
-			JTextField nField = new JTextField(5);
-			ePanel.add(nField);
-			ePanel.add(new JLabel("Pin Mode:"));
-			//create the mode drop down
-			JComboBox<String> mode = new JComboBox<String>(ArduinoPinConfig.modes);
-			ePanel.add(mode);
+			//check if they want a thruster, stepper, or other
+			JPanel checkPanel = new JPanel();
+			JComboBox<String> type= new JComboBox<String>(new String[]{"Thruster", "Stepper", "Other"});
 			
-			//display the add pop up and get the button result
-			int result = JOptionPane.showConfirmDialog(null, ePanel, "Add Pin Config", JOptionPane.OK_CANCEL_OPTION);
+			checkPanel.add(type);
 			
-			//if they clicked the okay button
-			if(result == JOptionPane.OK_OPTION)
+			int response = JOptionPane.showConfirmDialog(null, checkPanel, "What pin are you adding?", JOptionPane.CANCEL_OPTION);
+			
+			if(response == JOptionPane.CANCEL_OPTION)
 			{
-				//create a new pin
-				ArduinoPinConfig pin = new ArduinoPinConfig();
-				pin.setPinMode(mode.getSelectedIndex());
-				pin.setPinNumber(Integer.parseInt(nField.getText()));
-				DatabaseHandle db = new DatabaseHandle();
-				if(pin.getPinNumber() > 9)
-				{
-					//this.main.getLog().info("An unknown error occured");
-				//	return;
-				}
+				return;
+			}
+			else if(type.getSelectedItem().equals("Stepper"))
+			{
+				JPanel stepperPanel = new JPanel();
+				stepperPanel.add(new JLabel("Dir Pin: "));
+				JTextField dirPinField = new JTextField(5);
+				stepperPanel.add(dirPinField);
+				stepperPanel.add(new JLabel("Step Pin: "));
+				JTextField stepPinField = new JTextField(5);
+				stepperPanel.add(stepPinField);
+				stepperPanel.add(new JLabel("Stepper Number: "));
+				JTextField stepperNumber = new JTextField(5);
+				stepperPanel.add(stepperNumber);
 				
-				if(pin.getPinMode() == 3)
-				{
-					String value = JOptionPane.showInputDialog(null, "What thruster is this for?");
-					pin.setValue(Integer.parseInt(value));
-				}
-				else
-				{
-					pin.setValue(-1);
-				}
+				int result =JOptionPane.showConfirmDialog(null, stepperPanel, "Add Stepper Config", JOptionPane.OK_CANCEL_OPTION);
 				
-				//add the pin config to the database
-				if(db.insertPinConfig(pin))
+				if(result == JOptionPane.OK_OPTION)
 				{
-					if(pin.getPinMode() == 3)
+					ArduinoPinConfig pin = new ArduinoPinConfig();
+					
+					pin.setPinMode(ArduinoPinConfig.STEPPER);
+					pin.setPinNumber(Integer.parseInt(dirPinField.getText()));
+					pin.setValue(Integer.parseInt(stepperNumber.getText()));
+					pin.setPinNumberTwo(Integer.parseInt(stepPinField.getText()));
+					
+					if(db.insertPinConfig(pin))
+					{
+							this.pinsModel.addElement(pin);
+							this.main.getLog().info("Stepper " + pin.getValue() + " set to dir: " + pin.getPinNumber() + " and step: " + pin.getPinNumberTwo());
+							this.pinConfigList.repaint();
+					}
+				}
+			}
+			else if(type.getSelectedItem().equals("Thruster"))
+			{
+				JPanel thrusterPanel = new JPanel();
+				thrusterPanel.add(new JLabel("Pin Number: "));
+				JTextField pinNumber = new JTextField(5);
+				thrusterPanel.add(pinNumber);
+				thrusterPanel.add(new JLabel("Thruster Number: "));
+				JTextField thrusterNumber = new JTextField(5);
+				thrusterPanel.add(thrusterNumber);
+				
+				int result = JOptionPane.showConfirmDialog(null, thrusterPanel, "Add Thruster Config", JOptionPane.OK_CANCEL_OPTION);
+				
+				if(result == JOptionPane.OK_OPTION)
+				{
+					ArduinoPinConfig pin = new ArduinoPinConfig();
+					pin.setPinMode(ArduinoPinConfig.THRUSTER);
+					pin.setPinNumber(Integer.parseInt(pinNumber.getText()));
+					pin.setValue(Integer.parseInt(thrusterNumber.getText()));
+					if(db.insertPinConfig(pin))
 					{
 						this.main.getRobot().setThruster(pin);
+						this.pinsModel.addElement(pin);
+						this.main.getLog().info("Thruster " + pin.getValue() + " Set to Pin " + pin.getPinNumber());
+						this.pinConfigList.repaint();
 					}
-					else
+				}
+			}
+			else
+			{
+				//Create the add pin panel
+				JPanel ePanel = new JPanel();
+				//create the labels and fields for the pin number and modes
+				ePanel.add(new JLabel("Pin Number:"));
+				JTextField nField = new JTextField(5);
+				ePanel.add(nField);
+				ePanel.add(new JLabel("Pin Mode:"));
+				//create the mode drop down
+				JComboBox<String> mode = new JComboBox<String>(new String[]{"INPUT", "OUTPUT", "INPUT_PULLUP"});
+				ePanel.add(mode);
+				//display the add pop up and get the button result
+				int result = JOptionPane.showConfirmDialog(null, ePanel, "Add Pin Config", JOptionPane.OK_CANCEL_OPTION);
+				//if they clicked the okay button
+				if(result == JOptionPane.OK_OPTION)
+				{
+					//create a new pin
+					ArduinoPinConfig pin = new ArduinoPinConfig();
+					pin.setPinMode(mode.getSelectedIndex());
+					pin.setPinNumber(Integer.parseInt(nField.getText()));
+					pin.setValue(-1);
+					//add the pin config to the database
+					if(db.insertPinConfig(pin))
 					{
 						//set the pin mode on the robot
 						this.main.getRobot().setPinMode(pin);
+						//add the pin config to the list
+						this.pinsModel.addElement(pin);
+						this.main.getLog().info("Pin "+pin.getPinNumber()+" set to " + pin.pinModeToString());
+						this.pinConfigList.repaint();
 					}
-					//add the pin config to the list
-					this.pinsModel.addElement(pin);
-					this.main.getLog().info("Pin "+pin.getPinNumber()+" set to " + pin.pinModeToString());
-					this.pinConfigList.repaint();
-				}
-				//There was an error inserting the pin config
-				else
-				{
-					this.main.getLog().error("There was an error creating configuration for pin "+ pin.getPinNumber());
+					//There was an error inserting the pin config
+					else
+					{
+						this.main.getLog().error("There was an error creating configuration for pin "+ pin.getPinNumber());
+					}
 				}
 			}
 		}
 		else if(e.getSource() == deletePinConfig)
 		{
-			DatabaseHandle db = new DatabaseHandle();
-			
 			//get the selected value
 			ArduinoPinConfig pin = this.pinConfigList.getSelectedValue();
 			
@@ -287,5 +374,6 @@ public class PinConfigPanel extends JPanel implements ActionListener, ListSelect
 				this.main.getLog().error("There was an error removing the configuration for pin "+ pin.getPinNumber());
 			}
 		}
+		db.closeConnection();
 	}
 }

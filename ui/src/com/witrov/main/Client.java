@@ -186,4 +186,8 @@ public class Client {
 	{
 		return connecting;
 	}
+
+	public void setStepper(ArduinoPinConfig pin) {
+		this.sendCode("g"+pin.pinNumberToString()+""+pin.pinNumberTwoToString()+""+(pin.getValue()-1));		
+	}
 }

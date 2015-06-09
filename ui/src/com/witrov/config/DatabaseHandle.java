@@ -7,7 +7,7 @@ import java.util.ArrayList;
 public class DatabaseHandle {
 	
 	private String dbName = "wit_rov.db";
-        private String dbPath;
+    private String dbPath;
 	private Connection c;
 	public DatabaseHandle()
 	{
@@ -27,7 +27,6 @@ public class DatabaseHandle {
 	    try {
 	      Class.forName("org.sqlite.JDBC");
               
-              System.out.println("DBPATH: "+dbPath);
 	      File f = new File(dbPath);
 	      f.mkdirs();
 	      c = DriverManager.getConnection("jdbc:sqlite:"+dbPath+dbName);
@@ -42,6 +41,7 @@ public class DatabaseHandle {
 	      //value is used for thrusters
 	      String pinConfig = "CREATE TABLE IF NOT EXISTS pinConfig " +
                   "(pinNumber int(11) PRIMARY KEY     NOT NULL," +
+                  " pinNumberTwo   int(11)," +
                   " pinMode   int(11)    NOT NULL," +
                   " value	  int(11))";
 	      
@@ -145,10 +145,28 @@ public class DatabaseHandle {
 		}
 		return val;	
 	}
+	public ArduinoPinConfig findPinBy(String column, int value)
+	{
+		String query = "SELECT * from pinConfig WHERE "+column+"='"+value+"'";
+		ArduinoPinConfig pin = null;
+		try {
+			Statement stmt = c.createStatement();
+			ResultSet rs = stmt.executeQuery(query);
+			while(rs.next())
+			{
+				pin = new ArduinoPinConfig(rs.getInt("pinNumber"),rs.getInt("pinNumberTwo"),rs.getInt("pinMode"),rs.getInt("value"));
+			}
+			stmt.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return pin;
+	}
 	
 	public boolean insertPinConfig(ArduinoPinConfig pin)
 	{
-		String insert = "INSERT INTO pinConfig (pinNumber, pinMode, value) VALUES ('"+pin.getPinNumber()+"', '"+pin.getPinMode()+"', '"+pin.getValue()+"')";
+		String insert = "INSERT INTO pinConfig (pinNumber, pinNumberTwo, pinMode, value) VALUES ('"+pin.getPinNumber()+"', '"+pin.getPinNumberTwo()+"', '"+pin.getPinMode()+"', '"+pin.getValue()+"')";
 		try {
 			Statement stmt = c.createStatement();
 			stmt.execute(insert);
@@ -185,7 +203,7 @@ public class DatabaseHandle {
 			ResultSet rs = stmt.executeQuery(query);
 			while(rs.next())
 			{
-				list.add(new ArduinoPinConfig(rs.getInt("pinNumber"), rs.getInt("pinMode"), rs.getInt("value")));
+				list.add(new ArduinoPinConfig(rs.getInt("pinNumber"), rs.getInt("pinNumberTwo"), rs.getInt("pinMode"), rs.getInt("value")));
 			}
 			stmt.close();
 		} catch (SQLException e) {
