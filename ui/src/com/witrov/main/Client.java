@@ -107,7 +107,7 @@ public class Client {
 		{
 			return null;
 		}
-			
+					
 		//does some small verification to make sure that
 		//that the opcode isn't to long to kill the buffer 
 		//on the arduino side.  The buffer cna only handle 8 bit 
@@ -124,7 +124,7 @@ public class Client {
 		//sends the code to the arduino
 		out.flush();
 		//reads in the response from the arduino 
-		String message = "";
+		String message = "", m;
 		try {
 			message = in.readLine();
 		} catch (IOException e) {
@@ -188,6 +188,40 @@ public class Client {
 	}
 
 	public void setStepper(ArduinoPinConfig pin) {
-		this.sendCode("g"+pin.pinNumberToString()+""+pin.pinNumberTwoToString()+""+(pin.getValue()-1));		
+		this.sendCode("g"+pin.pinNumberToString()+""+pin.pinNumberTwoToString()+""+(pin.getValue()));		
+	}
+	
+	public void actuateStepper(int stepperNumber, int steps, int direction)
+	{
+		String s = "";
+		if(steps < 10)
+		{
+			s+= "0";
+		}
+		s += steps;
+		this.sendCode("x"+stepperNumber+""+direction+s);
+	}
+	
+	public void setCamera(int switcher, int one, int two, int three)
+	{
+		switch(switcher)
+		{
+			case 1:
+				this.dWrite(47, three);
+				this.dWrite(45, two);
+				this.dWrite(43, one);
+				break;
+			case 2:
+				this.dWrite(41, three);
+				this.dWrite(39, two);
+				this.dWrite(37, one);
+				break;
+		}
+	}
+	public void dWrite(int pin, int state)
+	{
+		ArduinoPinConfig p = new ArduinoPinConfig();
+		p.setPinNumber(pin);
+		this.sendCode("d"+p.pinNumberToString()+""+state);
 	}
 }

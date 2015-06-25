@@ -5,14 +5,17 @@ import java.awt.GridLayout;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.border.BevelBorder;
 
 public class StatsPanel extends JPanel {
 	
 	private ThrusterPanel t1, t2, t3, t4;
 	
-	private JLabel depth, heading, pitch, roll;
-	private JPanel depthPanel, headingPanel;
+	private JLabel depth, heading, pitch, roll, headingToKeepLabel;
+	private JPanel depthPanel, headingPanel, keepHeading;
+	private JTextField headingToKeep;
+	
 	
 	public StatsPanel()
 	{
@@ -33,10 +36,16 @@ public class StatsPanel extends JPanel {
 		headingPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Headings"));
 		
 		heading = new JLabel("Heading: 0");
+		headingToKeepLabel = new JLabel("Keep Heading: ");
 		pitch = new JLabel("Pitch: 0");
 		roll = new JLabel("Roll: 0");
-		
 		depth = new JLabel("0");
+		
+		headingToKeep = new JTextField(5);
+		
+		keepHeading = new JPanel();
+		keepHeading.add(headingToKeepLabel);
+		keepHeading.add(headingToKeep);
 		
 		this.setLayout(new GridLayout(0,1));
 		this.add(t1);
@@ -53,6 +62,7 @@ public class StatsPanel extends JPanel {
 		
 		this.add(depthPanel);
 		this.add(headingPanel);
+		this.add(keepHeading);
 		this.setBorder(BorderFactory.createTitledBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED), "Stats"));
 	}
 	
@@ -94,6 +104,21 @@ public class StatsPanel extends JPanel {
 	public void setRoll(float roll)
 	{
 		this.roll.setText("Roll: "+roll);
+	}
+
+	public int getHeading() {
+		String heading = this.heading.getText();
+		heading = heading.substring(8, heading.length());
+		return (int)Float.parseFloat(heading);
+	}
+
+	public int getHeadingToKeep() {
+		return Integer.parseInt(this.headingToKeep.getText());
+	}
+
+	public void setHeadingToKeep(int heading) {
+		this.headingToKeep.setText(""+heading);
+		
 	}
 
 }

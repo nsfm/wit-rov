@@ -93,7 +93,10 @@ public class XboxController extends Controller {
 	                this.dpad = 0;
 	                
 	                //buff 11 is a weird case
-	                int buf11 = this.checkDeviceValue(buf[11]) -64;
+	                int b = buf[11];
+	                System.out.println(b);
+	                int buf11 = this.checkDeviceValue(b)-128;
+	                System.out.println(buf11);
 	                if(buf11 - 32 >= 0)
 	                {
 	                	this.dpad = buf11/4;

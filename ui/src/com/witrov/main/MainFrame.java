@@ -23,6 +23,7 @@ import com.witrov.joystick.XboxController;
 
 public class MainFrame extends JFrame implements ActionListener{
 	
+	final private int HEADINGBUFFER = 20;
 	private Client robot;						//handles main communcation with robot	
 	private JButton execute, 					//buttons to handle neccessary events
 				listDevices,
@@ -54,7 +55,13 @@ public class MainFrame extends JFrame implements ActionListener{
 	
 	private HelpPanel help;
 	
+	private boolean keepHeading = false;
+	private int headingToKeep = 0;
+	private int[] headingAvg = new int[this.HEADINGBUFFER];
+	private int headingCount = 0;
+	
 	private int stepsPerSecond;
+	private boolean thrustersMoving = false;
 	/*
 	 * Constructor
 	 * Creates the Client object and establishes
@@ -242,10 +249,13 @@ public class MainFrame extends JFrame implements ActionListener{
 						case 1:
 						case 2:
 							robot.setPinMode(pin);
-						break;
+							break;
 						case 3:
 							robot.setThruster(pin);
-						break;
+							break;
+						case 4:
+							robot.setStepper(pin);
+							break;
 					}
 					log.info("Pin "+ pin.pinNumberToString() + " set to " +pin.pinModeToString());
 				}
@@ -265,6 +275,59 @@ public class MainFrame extends JFrame implements ActionListener{
 		int z = this.joysticks[joystickNumber-1].getMisc()[0];
 		
 		int r = this.joysticks[joystickNumber-1].getJoystick2X();
+		
+		boolean[] buttons = this.joysticks[joystickNumber-1].getButtons();
+		int currentHeading = this.stats.getHeading();
+		
+		if(buttons[3] && !this.lastButton[joystickNumber-1][3])
+		{
+			this.lastButton[joystickNumber-1][3] = buttons[3];
+			keepHeading = !keepHeading;
+			if(keepHeading)
+			{
+				this.stats.setHeadingToKeep(this.stats.getHeading());
+			}
+		}
+		else
+		{
+			this.lastButton[joystickNumber-1][3] = false;
+		}
+		
+		if(keepHeading)
+		{
+			try{
+				headingToKeep = this.stats.getHeadingToKeep();
+				if (headingToKeep > 180)
+				{
+					headingToKeep = -1 * (360 - headingToKeep);
+				}
+				if (currentHeading > 180)
+				{
+					currentHeading = -1 * (360 - currentHeading);
+				}
+				int error = headingToKeep - currentHeading;
+				this.getLog().info("Heading Error: " + error);
+				this.getLog().info("Heading to keep: " + headingToKeep);
+				if(error != 0)
+				{
+					if(Math.abs(error) > 15)
+					{
+						error = -error;
+					}
+					
+					r = error/2;
+					this.thrustersMoving = true;
+				}
+				else
+				{
+					r = 0;
+				}
+				this.getLog().info("R: " + r);
+			}catch(Exception e)
+			{
+				this.getLog().error("Heading to keep is an invalid value!");
+			}
+		}
 		
 		boolean xyzMult = this.joysticks[joystickNumber-1].getButtons()[9];
 		boolean rMult = this.joysticks[joystickNumber-1].getButtons()[8];
@@ -303,7 +366,7 @@ public class MainFrame extends JFrame implements ActionListener{
 			z *= 2;
 		}
 		
-		if(rMult)
+		if(rMult && !keepHeading)
 		{
 			r *= 2;
 		}
@@ -342,10 +405,11 @@ public class MainFrame extends JFrame implements ActionListener{
 				this.robot.sendCode("t1"+(400 + thruster2V));
 				this.robot.sendCode("t2"+(400 + thruster3V));
 				this.robot.sendCode("t3"+(400 + thruster4V));
-				
+				this.thrustersMoving = true;
 			}
-			else
+			else if(this.thrustersMoving)
 			{
+				this.thrustersMoving = false;
 				this.robot.sendCode("t0"+(400));
 				this.robot.sendCode("t1"+(400));
 				this.robot.sendCode("t2"+(400));
@@ -357,9 +421,11 @@ public class MainFrame extends JFrame implements ActionListener{
 		{
 			this.robot.sendCode("t4"+(400 + z));
 			this.robot.sendCode("t5" + (400 - z));
+			this.thrustersMoving = true;
 		}
-		else
+		else if(this.thrustersMoving)
 		{
+			this.thrustersMoving = false;
 			this.robot.sendCode("t4"+(400));
 			this.robot.sendCode("t5"+(400));
 		}
@@ -388,6 +454,10 @@ public class MainFrame extends JFrame implements ActionListener{
 		if(Math.abs(x) < this.controllerPanels[joystickNumber-1].getThreshold())
 		{
 			return 0;
+		}
+		else
+		{
+			x -= this.controllerPanels[joystickNumber-1].getThreshold();
 		}
 		
 		return x;
@@ -644,7 +714,7 @@ public class MainFrame extends JFrame implements ActionListener{
 	}
 	
 	//handles changing the camera and forward direction
-	public void hanldeCameraChange(int joystickNumber)
+	public void handleCameraChange(int joystickNumber, int switcherNumber)
 	{
 		if(!this.checkJoyStick(joystickNumber))
 		{
@@ -654,7 +724,6 @@ public class MainFrame extends JFrame implements ActionListener{
 		Controller j = this.joysticks[joystickNumber-1];
 		
 		int camera = j.getDPad();
-		
 		switch(camera)
 		{
 			case 0:
@@ -662,23 +731,26 @@ public class MainFrame extends JFrame implements ActionListener{
 				break;
 			case 1:
 				//forward
-				this.setThrusterConfig(1, 2, 3, 4);
+				this.robot.setCamera(switcherNumber, 0, 1, 0);
+				//this.setThrusterConfig(1, 2, 3, 4);
 				break;
 			case 3:
 				//right
-				this.setThrusterConfig(2, 4, 1, 3);
+				this.robot.setCamera(switcherNumber,0,1,1);
+				//this.setThrusterConfig(2, 4, 1, 3);
 				break;
 			case 5:
 				//backward
-				this.setThrusterConfig(4, 3, 2, 1);
+				this.robot.setCamera(switcherNumber, 1, 1, 1);
+				//this.setThrusterConfig(4, 3, 2, 1);
 				break;
 			case 7:
 				//left
-				this.setThrusterConfig(3, 1, 4, 2);
+				this.robot.setCamera(switcherNumber, 1, 1, 0);
+				//this.setThrusterConfig(3, 1, 4, 2);
 				break;
 			default:
-				//angle between one of the buttons
-				//or stopped
+				//stopped
 				break;
 		}
 		
@@ -773,6 +845,21 @@ public class MainFrame extends JFrame implements ActionListener{
 		try
 		{
 			float heading = Float.parseFloat(this.robot.sendCode("ch"));
+			this.headingAvg[headingCount%this.HEADINGBUFFER] = (int)heading;
+			headingCount++;
+			if(headingCount < 0)
+			{
+				headingCount = this.HEADINGBUFFER;
+			}
+			if(headingCount >= this.HEADINGBUFFER)
+			{
+				int avg = 0;
+				for(int i = 0; i < headingAvg.length; i++)
+				{
+					avg += headingAvg[i];
+				}
+				heading = avg/headingAvg.length;
+			}
 			this.stats.setHeading(heading);
 			return heading;
 		}
@@ -820,6 +907,8 @@ public class MainFrame extends JFrame implements ActionListener{
 		boolean udMult = this.joysticks[joystickNumber-1].getButtons()[9];
 		boolean rMult = this.joysticks[joystickNumber-1].getButtons()[8];
 		
+		boolean a = this.joysticks[joystickNumber-1].getButtons()[0];
+		boolean y = this.joysticks[joystickNumber-1].getButtons()[3];
 		//add -128 to the value so we get a scale of:
 		//               128
 		//                |
@@ -843,6 +932,16 @@ public class MainFrame extends JFrame implements ActionListener{
 		upDown = this.checkThreshold(upDown, joystickNumber);
 		squeeze = this.checkThreshold(squeeze, joystickNumber);
 		
+		if(a)
+		{
+			this.robot.actuateStepper(0, 10, 0);
+		}
+		if(y)
+		{
+			this.robot.actuateStepper(0, 10, 1);
+		}
+		
+		
 		//check if there was a change
 		if(this.lastJoystick[joystickNumber-1] != null && (rotate != this.lastJoystick[joystickNumber-1][0] || upDown != this.lastJoystick[joystickNumber-1][1] || squeeze != this.lastJoystick[joystickNumber-1][2]))
 		{	
@@ -852,29 +951,32 @@ public class MainFrame extends JFrame implements ActionListener{
 			this.lastJoystick[joystickNumber-1][2] = squeeze;
 			
 			//Only change if either coordinate is out side of the threshold
-			if(rotate != 0)
+			if(rotate != 0 && Math.abs(rotate) > 100)
 			{
-				this.log.debug("Rotating at: " + rotate);
+				int dir = 1;
+				if(rotate < 0)
+				{
+					dir = 0;
+				}
+				this.robot.actuateStepper(1, 10, dir);
 			}
-			else
+			if(squeeze != 0 && Math.abs(squeeze) > 100)
 			{
-				
+				int dir = 1;
+				if(squeeze < 0)
+				{
+					dir = 0;
+				}
+				this.robot.actuateStepper(2, 10, dir);
 			}
-			if(squeeze != 0)
+			if(upDown != 0 && Math.abs(upDown) > 100)
 			{
-				this.log.debug("Squeezing at: " + squeeze);
-			}
-			else
-			{
-				
-			}
-			if(upDown != 0)
-			{
-				this.log.debug("Moving at: " + upDown);
-			}
-			else
-			{
-				
+				int dir = 1;
+				if(upDown < 0)
+				{
+					dir = 0;
+				}
+				this.robot.actuateStepper(0, 10, dir);
 			}
 		}		
 	}
@@ -902,24 +1004,18 @@ public class MainFrame extends JFrame implements ActionListener{
 		//Maximize window
 		m.setExtendedState(JFrame.MAXIMIZED_BOTH);
 		
-		int checkDepth = 0;
 		while(true)
 		{
 			try
 			{
 				m.handleMainMovement(1);
-//				if(checkDepth % 30 == 0)
-//				{
-//					m.getDepth();
-//				}
-				//m.handleClaw(2);
-				//m.hanldeCameraChange(1);
-				//System.out.println(m.getDepth());
-				//m.getHeading();
-				//m.getPitch();
-				//m.getRoll();
+				m.handleClaw(2);
+				m.handleCameraChange(1,1);
+				m.handleCameraChange(2,2);
+				m.getHeading();
+				m.getPitch();
+				m.getRoll();
 				m.repaint();
-				checkDepth++;
 			}
 			catch(Exception e)
 			{

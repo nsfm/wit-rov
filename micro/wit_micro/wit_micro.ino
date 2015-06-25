@@ -32,6 +32,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define SERVO 6         // number of thrusters (servos) attached to machine
 #define STEPR 3         // number of stepper motors attached to machine
 
+
+//Camera switcher 1 47,45,43
+//Camera Switcher 2 41,39,37
+//Stepper pins 46-44 42-40 38-36
+
 // Networking Configuration
 byte mac[] = { 0x00, 0xde, 0xad, 0xfa, 0xca, 0xde }; // MAC must be unique on this network
 IPAddress ip(192,168,0,2);                           // IP of this device
@@ -83,7 +88,7 @@ void loop() {
     
     // keep reading/waiting until the command is complete
     while (true) {
-      
+      compass.readHeading();
       // if we go so many ticks without hearing anything, time out the client
       //timer--;
       //if (timer == 0) {
@@ -119,7 +124,7 @@ void loop() {
           client.stop();
           break;
         }
-      }
+      }      
     } 
       
     // interpret the command sent
@@ -160,12 +165,14 @@ void loop() {
       
       // analog read
       case 'h':
-        server.print(analogRead(char2int(op[1],op[2])));
+        server.write(analogRead(char2int(op[1],op[2])));
+        server.write("!");
         break;
         
       // digital read
       case 'r':
-        server.print(digitalRead(char2int(op[1],op[2])));
+        server.write(digitalRead(char2int(op[1],op[2])));
+        server.write("!");
         break;
         
       // attach thruster
@@ -206,29 +213,31 @@ void loop() {
 
       // read pressure
       case 'u':
-        server.print(depth.getPressure(ADC_2048));
+        server.write(depth.getPressure(ADC_2048));
+        server.write("!");
         break;
       
       // read temperature (external)
       case 'i':
-        server.print(depth.getTemperature(CELSIUS, ADC_512));
+        server.write(depth.getTemperature(CELSIUS, ADC_512));
+        server.write("!");
         break;
 
       // get compass data
       case 'c':
-        compass.readHeading();
         switch(op[1])
         {     
           case 'h':
-            server.print((float)compass.heading/10.0); //heading in degrees
+            server.write((float)compass.heading/10.0); //heading in degrees
             break;
           case 'p':
-            server.print((float)compass.pitch/10.0); //pitch in degrees
+            server.write((float)compass.pitch/10.0); //pitch in degrees
             break;
           case 'r':
-            server.print((float)compass.roll/10.0); //roll in degrees
+            server.write((float)compass.roll/10.0); //roll in degrees
             break;
         }
+        server.write("!");
         break;
 
       // end session
@@ -238,7 +247,21 @@ void loop() {
         client.flush();
         client.stop();
         break;
-        
+      //exxyy
+      //x -> device number
+      //y -> bytes to read
+      case 'e':
+        {
+          int bytes = char2int(op[3], op[4]);
+          Wire.requestFrom(char2int(op[1],op[2]), bytes);
+          while(Wire.available())
+          {
+            char c = Wire.read();
+            server.write(c);
+          }
+          server.write("!");
+        }
+        break;
       default:
         server.write("?");
     }
